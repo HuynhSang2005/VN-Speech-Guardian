@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  clerkId   String    @unique
+  email     String
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  sessions  Session[]
+}
+
+model Session {
+  id          String        @id @default(cuid())
+  userId      String
+  device      String?
+  lang        String        @default("vi")
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+  transcripts Transcript[]
+  detections  Detection[]
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transcript {
+  id        String       @id @default(cuid())
+  sessionId String
+  segIdx    Int
+  text      String
+  startMs   Int
+  endMs     Int
+  words     Json         // word-level timestamps
+  session   Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  detections Detection[]
+}
+
+model Detection {
+  id           String     @id @default(cuid())
+  sessionId    String
+  transcriptId String?
+  label        Label
+  score        Float
+  startMs      Int
+  endMs        Int
+  snippet      String
+  severity     Severity
+  createdAt    DateTime   @default(now())
+  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  transcript   Transcript? @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
+  
+  @@index([sessionId, createdAt])
+  @@index([label])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Label {
+  CLEAN
+  OFFENSIVE
+  HATE
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// VerificationCode model removed; using Clerk for authentication flows.

@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vsg-postgres
+    environment:
+      POSTGRES_USER: vsg
+      POSTGRES_PASSWORD: vsg
+      POSTGRES_DB: vsg_dev
+    ports:
+      - "3273:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
