@@ -20,7 +20,7 @@ applyTo: "apps/gateway-nest/**/*"
 - Pino latest 
 
 ## 3. Folder detail
-apps/api/
+apps/gateway-nestjs/
 ├─ src/
 │  ├─ main.ts
 │  ├─ app.module.ts

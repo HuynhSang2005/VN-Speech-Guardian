@@ -18,7 +18,7 @@ vn-speech-guardian/
 │  ├─ instructions/                       # path-specific
 │  └─ prompts/                            # task nhỏ
 ├─ apps/
-│  ├─ api/                                # NestJS Gateway
+│  ├─ gateway-nestjs/                                # NestJS Gateway
 │  │  ├─ src/
 │  │  │  ├─ main.ts
 │  │  │  ├─ app.module.ts
@@ -96,11 +96,11 @@ vn-speech-guardian/
 
 | Vị trí | Package | Version | Mục đích |
 |---|---|---|---|
-| **Root** | npm | 11.5 | workspace |
-| | turbo | 2.1.2 | cache task |
+| **Root** | npm | 11.5.2 | workspace |
+| | turbo | 2.5.6 | cache task |
 | | Node | 22 LTS trở lên | runtime |
 | **api (NestJS Latest Version)** | `@nestjs/core` | Latest Version| framework |
-| | `@nestjs/platform-fastify` | Latest Version | HTTP & WS |
+| | `@nestjs/platform-express` | Latest Version | HTTP & WS |
 | | `@nestjs/swagger` | Latest Version | OpenAPI |
 | | `nestjs-zod` | Latest Version | Zod → DTO |
 | | `prisma` | Latest Version | ORM |
