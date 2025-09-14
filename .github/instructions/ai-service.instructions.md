@@ -1,245 +1,121 @@
+# ai-service.instructions.md 
 
-## 1. Faster Whisper (Offline, Python)
-
-- Faster Whisper là thư viện tối ưu phiên bản Whisper có thể chạy offline nhanh với Python.
-- Cài đặt Faster Whisper qua pip:
-
-```bash
-pip install faster-whisper
-```
-
-- Ví dụ tải và sử dụng model offline Python:
-
-```python
-from faster_whisper import WhisperModel
-
-model_size = "small"  # cân nhắc small để nhanh và nhẹ
-```bash
-pip install faster-whisper
-```
-
-- Ví dụ tải và sử dụng model offline Python:
-```python
-from faster_whisper import WhisperModel
-
-model_size = "small"  # cân nhắc small để nhanh và nhẹ
-
-```python
-from faster_whisper import WhisperModel
-
-model_size = "small"  # cân nhắc small để nhanh và nhẹ
-model = WhisperModel(model_size, device="cpu")  # hoặc 'cuda' nếu có GPU
-
-result = model.transcribe("file_audio.wav")
-print(result[0])
-```
-
-- Link dự án Faster Whisper GitHub tải model:  
-https://github.com/openai/whisper  
-https://github.com/SYSTRAN/faster-whisper
-
-Model sẽ được tự động tải khi sử dụng hoặc có thể tải thủ công từ link trong repo.
-
-***
-
-## 2. PhoBERT (Offline, Python)
-
-- Tải model PhoBERT-base offline từ Hugging Face:
-
-```bash
-pip install transformers
-pip install torch
-```
-
-- Code tải và load PhoBERT offline:
-
-```python
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-
-tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base", local_files_only=True)
-model = AutoModelForSequenceClassification.from_pretrained("vinai/phobert-base", local_files_only=True)
-```
-
-- Nếu muốn tải model offline thủ công để dùng local_files_only=True:
-
-Tải model repo: https://huggingface.co/vinai/phobert-base
-
-Dùng `git lfs` để tải về đầy đủ dữ liệu hoặc download qua huggingface-cli.
-
-***
-
-## 3. Dataset ViHSD (Vietnamese Hate Speech Detection)
-
-- Dataset ViHSD có sẵn public trên GitHub:
-
-Link tải dataset:  
-https://github.com/sonlam1102/vihsd
-
-- Có thể clone hoặc tải zip về:
-
-```bash
-git clone https://github.com/sonlam1102/vihsd.git
-```
-
-- Dataset chứa dữ liệu offline, phù hợp dùng cho fine-tune PhoBERT hoặc các bài toán NLP khác.
-
-***
-
-### Tóm lại
-| Thành phần     | Cách tải/offline sử dụng                                                         |
-|----------------|---------------------------------------------------------------------------------|
-| Faster Whisper | `pip install faster-whisper`, dùng API tự động tải model hoặc tải thủ công GitHub repo |
-| PhoBERT        | Tải model từ Hugging Face (vinai/phobert-base), dùng transformers Python offline |
-| ViHSD dataset  | Clone/fork hoặc tải từ https://github.com/sonlam1102/vihsd                       |
-
-Nếu cần hỗ trợ chi tiết từng bước triển khai hoặc tải model, dataset offline, có thể yêu cầu thêm. Các link và cách sử dụng đã được tóm tắt và chuẩn bị cho tải offline và chạy Python.Để download và sử dụng offline Faster Whisper, PhoBERT và dataset ViHSD, dưới đây là hướng dẫn cùng link tải cần thiết.[1][2][3]
-
-***
-
-## 1. Faster Whisper (offline, Python)
-- Cài thư viện Faster Whisper qua pip:
-```bash
-pip install faster-whisper
----
-applyTo:
-	- "apps/ai-worker/**/*"
-	- "apps/ai-worker/**"
----
+**Mục tiêu:** Chuẩn hóa cách **huấn luyện offline** PhoBERT trên `dataset.csv`, sau đó **deploy suy luận** trong FastAPI. Whisper dùng thẳng, không cần huấn luyện.
 
 ---
-applyTo:
-	- "apps/ai-worker/**/*"
-	- "apps/ai-worker/**"
+
+## 1) Chuẩn dữ liệu `dataset.csv`
+
+* Cột bắt buộc: `text`, `label`
+* Nhãn dùng bộ ánh xạ: `{"safe":0,"warn":1,"block":2}`
+* Ví dụ:
+
+```csv
+text,label
+"Xin chào bạn",safe
+"Nội dung dễ gây tổn thương",warn
+"Rất tục tĩu",block
+```
+
 ---
 
-# AI Service Instructions (Faster-Whisper + PhoBERT + Dataset)
+## 2) Huấn luyện PhoBERT (offline, 1 lệnh)
 
-Mục đích: hướng dẫn triển khai offline các thành phần chính cho AI service trong `apps/ai-worker` — Faster Whisper (ASR), PhoBERT (moderation/classification) và dataset ViHSD. Tài liệu này tập trung vào các bước cài đặt, cấu hình offline, gợi ý model size, tối ưu CPU và troubleshooting.
-
-Lưu ý ngôn ngữ: các comment/ghi chú nội bộ dùng tiếng Việt không dau theo quy uoc repo.
-
-## Tổng quan nhanh
-- ASR: faster-whisper (Python) để chạy Whisper offline trên CPU. Khuyến nghị model `small` hoặc `medium` cho cân bằng độ chính xác / latency.
-- Moderation/NLP: PhoBERT (transformers) cho tiếng Việt. Dùng model `vinai/phobert-base` hoặc các checkpoint đã fine-tune.
-- Dataset: ViHSD (Vietnamese Hate Speech Dataset) để fine-tune hoặc đánh giá mô hình.
-
-## Prerequisites
-- Python 3.10+ (3.11 khuyến nghị khi dùng latest libraries)
-- Git (với git-lfs nếu tải model từ HF bằng git)
-- Kết nối internet 1 lần để tải model (hoặc tải thủ công rồi copy vào /models)
-- Khuyến nghị tạo virtualenv/venv
-
-## 1) Faster-Whisper (ASR)
-
-Contract (ngắn):
-- Input: file WAV hoặc stream PCM 16kHz mono
-- Output: list chữ (segments) + text final
-- Error modes: model file missing, OOM, permission
-
-Cài đặt nhanh (local venv):
-
-```bash
-python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1   # PowerShell on Windows
-pip install --upgrade pip
-pip install faster-whisper onnxruntime
-```
-
-Load model (ví dụ):
+Tạo `train_phobert.py` ở thư mục tạm bất kỳ:
 
 ```python
-from faster_whisper import WhisperModel
+import os, json, numpy as np
+from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
-# model_size: tiny, base, small, medium, large
-model = WhisperModel("small", device="cpu")
-segments, info = model.transcribe("./data/file_audio.wav")
-print(segments)
+DATASET="./apps/ai-service/data/dataset.csv"
+OUTDIR="./apps/ai-service/models/phobert-mvp"
+PRETRAINED="vinai/phobert-base"
+TEXT_MAX_LEN=256
+LABEL_MAP={"safe":0,"warn":1,"block":2}
+
+def metrics(p):
+  l, y = p
+  y = np.argmax(l, axis=-1)
+  return {
+    "accuracy": float((y==p.label_ids).mean()),
+    "f1": float(f1_score(p.label_ids, y, average="macro", zero_division=0)),
+    "precision": float(precision_score(p.label_ids, y, average="macro", zero_division=0)),
+    "recall": float(recall_score(p.label_ids, y, average="macro", zero_division=0)),
+  }
+
+def main():
+  raw = load_dataset("csv", data_files={"train": DATASET})["train"].train_test_split(test_size=0.1, seed=42)
+  tok = AutoTokenizer.from_pretrained(PRETRAINED, use_fast=True)
+
+  def prep(e):
+    t = tok(e["text"], max_length=TEXT_MAX_LEN, truncation=True, padding="max_length")
+    t["labels"] = [LABEL_MAP[x] for x in e["label"]]
+    return t
+
+  train = raw["train"].map(prep, batched=True)
+  valid = raw["test"].map(prep, batched=True)
+
+  mdl = AutoModelForSequenceClassification.from_pretrained(PRETRAINED, num_labels=3, id2label={v:k for k,v in LABEL_MAP.items()}, label2id=LABEL_MAP)
+
+  args = TrainingArguments(
+    output_dir=OUTDIR, num_train_epochs=3, per_device_train_batch_size=16, per_device_eval_batch_size=16,
+    learning_rate=2e-5, evaluation_strategy="epoch", save_strategy="epoch", load_best_model_at_end=True,
+    metric_for_best_model="f1", logging_steps=50
+  )
+  tr = Trainer(model=mdl, args=args, train_dataset=train, eval_dataset=valid, tokenizer=tok, compute_metrics=metrics)
+  tr.train()
+  tr.save_model(OUTDIR); tok.save_pretrained(OUTDIR)
+
+if __name__=="__main__": main()
 ```
 
-Tips/Tối ưu:
-- Dùng `small` cho MVP; `tiny` nếu cần latency cực thấp.
-- Nếu có khả năng chạy trên GPU, set `device='cuda'`.
-- Giữ beam_size nhỏ (1-3) để giảm latency.
-- Nếu muốn tải model thủ công: clone repo hoặc download checkpoint và đặt trong `/apps/ai-worker/models/whisper-small/`.
-
-Links:
-- https://github.com/SYSTRAN/faster-whisper
-- https://github.com/openai/whisper
-
-## 2) PhoBERT (Moderation / Keyword Detection)
-
-Contract (ngắn):
-- Input: Vietnamese text (string)
-- Output: label/confidence hoặc embedding
-- Error modes: tokenizer mismatch, model not found, sequence too long
-
-Cài đặt nhanh:
+Chạy:
 
 ```bash
-pip install transformers torch sentencepiece
+pip install -U transformers datasets scikit-learn accelerate evaluate
+python train_phobert.py
+# Kết quả: models/phobert-mvp/ gồm config.json, tokenizer.*, pytorch_model.bin...
 ```
 
-Ví dụ load model (offline-ready):
+---
 
-```python
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+## 3) Copy checkpoint sang service
 
-# Nếu đã tải model vào local và dùng local_files_only=True
-tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base", local_files_only=True)
-model = AutoModelForSequenceClassification.from_pretrained("vinai/phobert-base", local_files_only=True)
+* Đảm bảo thư mục: `apps/ai-service/models/phobert-mvp/`
+* Kiểm tra đọc được: khởi động FastAPI, gọi `POST /moderation`. Nếu thiếu checkpoint sẽ trả 503.
 
-# Inference sample
-inputs = tokenizer("Xin chao, hom nay the nao?", return_tensors="pt")
-outputs = model(**inputs)
+---
+
+## 4) Whisper trong MVP
+
+* Dùng `faster-whisper` với `ASR_MODEL_NAME=small` trên CPU.
+* Mặc định `ASR_LANGUAGE=vi` để cố định tiếng Việt.
+* Thử với file `.wav` 16 kHz mono để ổn định.
+
+---
+
+## 5) Kết nối với NestJS Gateway
+
+* Thêm biến ở Gateway:
+
+```
+AI_SERVICE_BASE_URL=http://localhost:8001
+AI_SERVICE_API_KEY=dev-secret
 ```
 
-Tips:
-- Để giảm kích thước/latency: export model sang ONNX rồi dùng onnxruntime.
-- Nếu fine-tune, lưu checkpoint local và sử dụng `local_files_only=True` để đảm bảo offline.
-- Chuẩn hóa text (NFC, loại Unicode non-standard) trước khi tokenize.
+* Gọi:
 
-Links:
-- https://huggingface.co/vinai/phobert-base
-- Hướng dẫn ONNX export: https://huggingface.co/docs/transformers/serialization
-
-## 3) Dataset ViHSD
-- Dataset trên Hugging Face: https://huggingface.co/datasets/visolex/ViHSD
-
-Clone nhanh:
-
-```bash
-git clone https://huggingface.co/datasets/visolex/ViHSD apps/ai-worker/data/vihsd
+```ts
+await axios.post(`${AI}/asr`, form, { headers: { "x-api-key": KEY, ...form.getHeaders() }})
+await axios.post(`${AI}/moderation`, { inputs }, { headers: { "x-api-key": KEY }})
 ```
 
-Sử dụng dataset để fine-tune PhoBERT hoặc tạo bộ từ khóa xấu.
+* Mapping lỗi:
 
-## Offline model management (recommended layout)
-
-/apps/ai-worker/models/
-- whisper-small/  # faster-whisper checkpoint files
-- phobert-base/   # HF model files (config, pytorch_model.bin, tokenizer files)
-
-Luôn kiểm tra quyền file và owner nếu server chạy dưới user khác.
-
-## Troubleshooting & FAQ
-
-1) Model not found / local_files_only error
-- Kiểm tra path đúng, hoặc tải model bằng huggingface-cli: `huggingface-cli repo clone <name>` hoặc dùng `git lfs`.
-
-2) OOM on CPU
-- Dùng smaller model (`tiny`/`base`), hoặc dùng quantized model/onnx int8.
-
-3) Slow transcription
-- Giảm beam_size, đổi model_size, kiểm tra I/O (decompressing audio), dùng batch processing.
-
-4) Windows-specific
-- PowerShell: activate venv via `\\.venv\\Scripts\\Activate.ps1`.
-- Nếu gặp permissions, chạy PowerShell as Admin để cho phép script execution or set-executionpolicy.
-
-## Testing (quick checks)
-
-- Test ASR fast smoke test: chạy script nhỏ `tests/smoke_asr.py` (tạo file test nếu cần) để transcribe sample wav.
-- Test PhoBERT: chạy inference script `tests/smoke_phobert.py`.
-
+  * 401 → key sai.
+  * 400 → định dạng file audio không hợp lệ.
+  * 503 → PhoBERT chưa sẵn sàng.
 
 ---

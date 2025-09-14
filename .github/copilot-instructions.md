@@ -15,17 +15,8 @@
 vn-speech-guardian/
 ├─ .github/
 │  ├─ copilot-instructions.md             # file này
-│  ├─ workflows/ci.yml
 │  ├─ instructions/                       # path-specific
-│  │  ├─ backend-nestjs.instructions.md
-│  │  ├─ backend-python-fastapi.instructions.md
-│  │  ├─ frontend.instructions.md
-│  │  ├─ db-schema-prisma.instructions.md
-│  │  ├─ shared.instructions.md
-│  │  └─ naming.instructions.md
 │  └─ prompts/                            # task nhỏ
-│     ├─ phase-be/
-│     └─ phase-fe/
 ├─ apps/
 │  ├─ api/                                # NestJS Gateway
 │  │  ├─ src/
@@ -57,7 +48,7 @@ vn-speech-guardian/
 │  │  │  ├─ vad.py
 │  │  │  └─ utils/
 │  │  ├─ tests/
-│  │  ├─ models/             # *.onnx (git-lfs)
+│  │  ├─ models/            
 │  │  ├─ requirements.txt
 │  │  ├─ pytest.ini
 │  │  └─ Dockerfile
