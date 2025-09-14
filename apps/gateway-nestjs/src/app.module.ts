@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
+import { WsModule } from './modules/ws/ws.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CommonModule } from './common/common.module';
     }),
   CommonModule,
   AuthModule,
+  WsModule,
   ],
   controllers: [],
   providers: [],
