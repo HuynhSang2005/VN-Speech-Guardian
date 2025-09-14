@@ -13,6 +13,11 @@ describe('SessionsService', () => {
       count: jest.fn().mockResolvedValue(1),
       delete: jest.fn().mockResolvedValue({ id: 's1' }),
     },
+    transcript: {
+      findMany: jest.fn().mockResolvedValue([
+        { id: 't1', sessionId: 's1', segIdx: 0, text: 'hello', startMs: 0, endMs: 100 },
+      ]),
+    },
   } as any;
 
   beforeEach(async () => {
@@ -32,5 +37,11 @@ describe('SessionsService', () => {
     const res = await service.list(1, 10);
     expect(res).toHaveProperty('total', 1);
     expect(res.items).toHaveLength(1);
+  });
+
+  it('should list transcripts for a session', async () => {
+    const res = await service.listTranscripts('s1');
+    expect(Array.isArray(res)).toBe(true);
+    expect(res[0]).toHaveProperty('id', 't1');
   });
 });

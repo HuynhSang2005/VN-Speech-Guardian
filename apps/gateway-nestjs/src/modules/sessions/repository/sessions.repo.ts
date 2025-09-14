@@ -22,4 +22,8 @@ export class SessionsRepository {
   async remove(id: string) {
     return this.prisma.session.delete({ where: { id } });
   }
+
+  async findTranscriptsBySessionId(sessionId: string) {
+    return this.prisma.transcript.findMany({ where: { sessionId }, orderBy: { segIdx: 'asc' } });
+  }
 }

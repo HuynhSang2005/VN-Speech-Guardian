@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SessionsRepository } from './repository/sessions.repo';
+import { TranscriptSchema } from './transcript.model';
 
 @Injectable()
 export class SessionsService {
@@ -30,5 +31,11 @@ export class SessionsService {
 
   async remove(id: string) {
     return this.repo.remove(id);
+  }
+
+  async listTranscripts(sessionId: string) {
+    const transcripts = await this.repo.findTranscriptsBySessionId(sessionId);
+    // validate/parse each transcript via Zod schema to ensure shape correctness
+    return transcripts.map((t) => TranscriptSchema.parse(t));
   }
 }

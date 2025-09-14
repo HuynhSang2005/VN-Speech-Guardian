@@ -29,6 +29,12 @@ export class SessionsController {
     return { success: true, data: s };
   }
 
+  @Get(':id/transcripts')
+  async transcripts(@Param('id') id: string) {
+    const t = await this.sessionsService.listTranscripts(id);
+    return { success: true, data: t };
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.sessionsService.remove(id);
