@@ -46,8 +46,11 @@ export class AudioGateway implements OnModuleInit {
       client.data.cleanCount = client.data.cleanCount || 0;
       client.data.isToxic = client.data.isToxic || false;
 
-      if (result?.detection) {
-        const label = result.detection.label; // expected 'CLEAN' | 'OFFENSIVE' | 'HATE'
+      // support both `detection` (singular) and `detections` (array) shapes from AI worker
+      const detection = result?.detection ?? (Array.isArray(result?.detections) && result.detections.length ? result.detections[0] : undefined);
+
+      if (detection) {
+        const label = detection.label; // expected 'CLEAN' | 'OFFENSIVE' | 'HATE'
         if (label !== 'CLEAN') {
           client.data.toxicCount += 1;
           client.data.cleanCount = 0;
@@ -59,12 +62,12 @@ export class AudioGateway implements OnModuleInit {
         // thresholds: toxic if toxicCount >= 2; clean if cleanCount >= 3
         if (!client.data.isToxic && client.data.toxicCount >= 2) {
           client.data.isToxic = true;
-          client.emit('detection', { label: 'TOXIC', detail: result.detection });
+          client.emit('detection', { label: 'TOXIC', detail: detection });
         }
 
         if (client.data.isToxic && client.data.cleanCount >= 3) {
           client.data.isToxic = false;
-          client.emit('detection', { label: 'CLEAN', detail: result.detection });
+          client.emit('detection', { label: 'CLEAN', detail: detection });
         }
       }
     } catch (err: any) {
