@@ -2,24 +2,23 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: vnspeech-pg
-    restart: unless-stopped
+    container_name: vsg-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: vn_speech_guardian
+      POSTGRES_USER: vsg
+      POSTGRES_PASSWORD: vsg
+      POSTGRES_DB: vsg_dev
     ports:
       - "5432:5432"
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
 
   adminer:
-    image: adminer
-    container_name: vnspeech-adminer
+    image: adminer:4.8.1
+    container_name: vsg-adminer
     ports:
       - "8080:8080"
     depends_on:
       - postgres
 
 volumes:
-  pg_data:
+  postgres_data:

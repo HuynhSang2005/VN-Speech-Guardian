@@ -1,9 +1,6 @@
-
-### `.github/instructions/db.instructions.md`
-```markdown
----
-applyTo: ["apps/gateway-nest/prisma/**/*", "infra/*"]
----
+applyTo:
+  - "apps/gateway-nest/prisma/**/*"
+  - "infra/*"
 
 # Database Guidelines
 
@@ -20,55 +17,56 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  hash      String
-  role      String     @default("user")
-  createdAt DateTime   @default(now())
+  id        String    @id @default(cuid())
+  clerkId   String    @unique
+  email     String
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
   sessions  Session[]
 }
 
 model Session {
-  id        String       @id @default(cuid())
-  userId    String
-  user      User         @relation(fields: [userId], references: [id])
-  startedAt DateTime     @default(now())
-  endedAt   DateTime?
-  device    String?
-  lang      String       @default("vi")
+  id          String        @id @default(cuid())
+  userId      String
+  device      String?
+  lang        String        @default("vi")
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
   transcripts Transcript[]
   detections  Detection[]
-  @@index([userId, startedAt])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Transcript {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id])
   segIdx    Int
   text      String
   startMs   Int
   endMs     Int
-  words     Json     // [{word,start,end,conf}]
-  createdAt DateTime @default(now())
-  @@index([sessionId, segIdx])
+  words     Json         // word-level timestamps
+  session   Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  detections Detection[]
 }
 
 model Detection {
-  id        String   @id @default(cuid())
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id])
+  id           String     @id @default(cuid())
+  sessionId    String
   transcriptId String?
-  label     String   // CLEAN | OFFENSIVE | HATE
-  score     Float
-  startMs   Int
-  endMs     Int
-  snippet   String
-  severity  String   // mild | moderate | severe
-  createdAt DateTime @default(now())
-  @@index([sessionId, createdAt])
-  @@index([label])
+  label        Label
+  score        Float
+  startMs      Int
+  endMs        Int
+  snippet      String
+  severity     Severity
+  createdAt    DateTime   @default(now())
+  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  transcript   Transcript? @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
 }
+
+enum Role  { USER ADMIN }
+enum Label { CLEAN OFFENSIVE HATE }
+enum Severity { LOW MEDIUM HIGH }
 ```
 
 ## 2. Naming convention
