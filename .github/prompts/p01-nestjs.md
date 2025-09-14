@@ -2,10 +2,10 @@
 
 | Task    | Mô tả chi tiết                                                                                                     | Check |
 | ------- | ------------------------------------------------------------------------------------------------------------------ | ----- |
-| **P01** | Tạo **NestJS project** trong `apps/api`, cài đặt đầy đủ dependencies (swagger, prisma, clerk, pino, jest) | ☐     |
-| **P02** | Viết **Prisma schema** (user, session, transcript, detection) → chạy `npm run db:migrate-dev`                      | ☐     |
-| **P03** | Tạo **ClerkGuard** – verify JWT, attach `req.user`                                                                 | ☐     |
-| **P04** | Tạo **REST** `/api/auth/clerk` – exchange Clerk JWT → internal accessToken                                         | ☐     |
+| **P01** | Tạo **NestJS project** trong `apps/api`, cài đặt đầy đủ dependencies (swagger, prisma, clerk, pino, jest) | ✅     |
+| **P02** | Viết **Prisma schema** (user, session, transcript, detection) → chạy `npm run db:migrate-dev`                      | ✅     |
+| **P03** | Tạo **ClerkGuard** – verify JWT, attach `req.user`                                                                 | ✅     |
+| **P04** | Tạo **REST** `/api/auth/clerk` – exchange Clerk JWT → internal accessToken                                         | ✅     |
 | **P05** | Tạo **REST** `/api/sessions` – CRUD, phân trang, validate Zod                                                      | ☐     |
 | **P06** | Tạo **REST** `/api/sessions/:id/transcripts` – list transcript                                                     | ☐     |
 | **P07** | Tạo **REST** `/api/stats/overview` – dashboard metric                                                              | ☐     |
