@@ -22,6 +22,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts"
+    ,"gen:dtos": "node ../../tooling/scripts/gen-nest-dto.js"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
@@ -92,6 +93,14 @@
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
+    ],
+    "coveragePathIgnorePatterns": [
+      "<rootDir>/main.ts",
+      "<rootDir>/app.module.ts",
+      "<rootDir>/.+\\.module\\.ts$",
+      "<rootDir>/.+\\.(dto|model)\\.ts$",
+      "<rootDir>/common/interceptors/",
+      "<rootDir>/common/prisma/prisma.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
