@@ -9,7 +9,7 @@ FE: npm run test:fe (Vitest) – RTL
 Nest: npm run test:e2e – Supertest + testcontainer Postgres
 FE: npm run test:e2e:fe – Playwright (headless)
 - 3. Coverage target
-≥ 70 % cho mỗi service
+≥ 90 % cho mỗi service
 Không merge PR nếu < 70 %
 - 4. Lint
 Nest & FE: eslint + prettier
