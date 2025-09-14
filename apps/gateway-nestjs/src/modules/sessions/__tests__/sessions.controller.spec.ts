@@ -21,6 +21,17 @@ describe('SessionsController', () => {
     controller = module.get<SessionsController>(SessionsController);
   });
 
+  it('list returns paginated data', async () => {
+    const res = await controller.list({}, 1, 10);
+    expect(res).toBeDefined();
+    expect(mockService.list).toHaveBeenCalledWith(1, 10);
+  });
+
+  it('propagates errors from service', async () => {
+    (mockService.list as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+    await expect(controller.list({}, 1, 10)).rejects.toThrow('boom');
+  });
+
   it('create returns session', async () => {
     const res = await controller.create({ userId: 'u1' } as any);
     expect(res).toHaveProperty('success', true);
