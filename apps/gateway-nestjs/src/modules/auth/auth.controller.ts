@@ -24,7 +24,7 @@ import { ClerkGuard } from '../../common/guards/clerk.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { LoginRequest, UserDto } from './dto/auth.dto';
 
-type AuthResponse = { success: boolean; data: { user: UserDto } };
+type AuthResponse = { success: boolean; data: { accessToken?: string; user: UserDto } };
 
 @ApiTags('Authentication')
 @Controller('api/auth')
@@ -91,9 +91,10 @@ export class AuthController {
       }
 
       // Delegate to AuthService which returns internal token + user
-      const result = await this.authService.exchangeClerkToken(token);
-      this.logger.log(`Clerk token exchanged for user: ${result.data.user.email}`);
-      return { success: true, data: { accessToken: result.data.accessToken, user: result.data.user } } as any;
+  const result = await this.authService.exchangeClerkToken(token);
+  this.logger.log(`Clerk token exchanged for user: ${result.data.user.email}`);
+  const response: AuthResponse = { success: true, data: { accessToken: result.data.accessToken, user: result.data.user } };
+  return response;
     } catch (error) {
       this.logger.error(`Auth verification failed: ${error.message}`);
       

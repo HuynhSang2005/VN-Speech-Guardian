@@ -24,15 +24,13 @@ export type LoginResponse = {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private clerkIntegration: ClerkIntegrationService;
 
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
     private prisma: PrismaService,
-  ) {
-    // ClerkIntegrationService will be injected by Nest — ensure module provides it
-  }
+    private clerkIntegration: ClerkIntegrationService,
+  ) {}
 
   async exchangeClerkToken(clerkToken: string): Promise<LoginResponse> {
     try {
