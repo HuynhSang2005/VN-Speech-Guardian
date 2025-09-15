@@ -18,8 +18,12 @@ def _load_models():  # pragma: no cover - nặng, không chạy trong unit test
         whisper_model = None
 
     try:
-        # Placeholder PhoBERT load (tương lai sẽ thay bằng model thật)
-        phobert = None
+        from transformers import AutoTokenizer, AutoModelForSequenceClassification  # type: ignore
+
+        tokenizer = AutoTokenizer.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
+        model = AutoModelForSequenceClassification.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
+        model.eval()
+        phobert = {"tokenizer": tokenizer, "model": model}
     except Exception:
         phobert = None
     return whisper_model, phobert
