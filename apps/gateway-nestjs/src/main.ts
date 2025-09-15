@@ -46,16 +46,31 @@ async function bootstrap() {
     }),
   );
 
-  //  Swagger documentation setup
+  //  Swagger / OpenAPI documentation setup
   const config = new DocumentBuilder()
     .setTitle('VN Speech Guardian API')
     .setDescription('Speech-to-Text with toxicity detection for Vietnamese')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'Authorization')
+    .setContact('VN Speech Team', 'https://example.com', 'team@example.com')
+    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+    .addServer(process.env.API_HOST || `http://localhost:${process.env.PORT || 3001}`)
     .build();
-  
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, documentFactory);
+
+  const document = SwaggerModule.createDocument(app, config, {
+    // include all controllers and models (default) — placeholder for extra options
+  });
+
+  // expose raw OpenAPI JSON for CI/consumers
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    customSiteTitle: 'VN Speech Guardian API Docs',
+  });
+  // also serve the raw JSON at a stable endpoint
+  app.getHttpServer().on && app.getHttpServer();
+  app.use('/api/docs-json', (req, res) => res.json(document));
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
