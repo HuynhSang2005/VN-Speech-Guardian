@@ -44,6 +44,11 @@ jobs:
           cd apps/gateway-nestjs
           npm ci --no-audit --no-fund
 
+      - name: Lint
+        run: |
+          cd apps/gateway-nestjs
+          npm run lint --silent || true
+
       - name: Dependency audit (fail on moderate+)
         run: |
           cd apps/gateway-nestjs
@@ -67,3 +72,35 @@ jobs:
           cd apps/gateway-nestjs
           npm test --silent
           npm run test:e2e --silent
+
+      - name: Generate OpenAPI snapshot
+        run: |
+          cd apps/gateway-nestjs
+          SKIP_DB=1 npm run generate:openapi --silent
+          test -f public/openapi.json
+
+      - name: Start mock AI worker (background)
+        run: |
+          cd apps/gateway-nestjs
+          nohup node tooling/scripts/mock-ai-worker.js > /tmp/mock-ai.log 2>&1 &
+          echo $! > /tmp/mock-ai.pid
+
+      - name: Smoke test health
+        env:
+          TARGET_URL: http://localhost:3001
+          TARGET_PATH: /health
+          CONNECTIONS: 2
+          DURATION: 5
+        run: |
+          cd apps/gateway-nestjs
+          # Run app briefly with SKIP_DB=1 and mock AI URL
+          nohup env SKIP_DB=1 AI_WORKER_URL=http://localhost:8001 npm run start &
+          APP_PID=$!
+          sleep 3
+          node tooling/scripts/smoke-load-test.js
+          kill $APP_PID || true
+
+      - name: Build Docker image
+        run: |
+          cd apps/gateway-nestjs
+          docker build -t gateway-nestjs:ci .

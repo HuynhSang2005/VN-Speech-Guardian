@@ -87,6 +87,10 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
+  "optionalScripts": {
+    "smoke": "node tooling/scripts/smoke-load-test.js",
+    "mock:ai": "node tooling/scripts/mock-ai-worker.js"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
