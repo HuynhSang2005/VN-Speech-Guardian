@@ -7,7 +7,7 @@ export class DetectionDto {
   @ApiProperty({ example: 'sess_123', description: 'Related session id' })
   sessionId: string;
 
-  @ApiProperty({ example: null, description: 'Related transcript id (may be null)' })
+  @ApiProperty({ type: String, nullable: true, example: null, description: 'Related transcript id (may be null)' })
   transcriptId: string | null;
 
   @ApiProperty({ example: 'OFFENSIVE', enum: ['CLEAN', 'OFFENSIVE', 'HATE'] })
