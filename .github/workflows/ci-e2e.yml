@@ -68,6 +68,8 @@ jobs:
           npx prisma migrate deploy
 
       - name: Run tests
+        env:
+          DATABASE_URL: postgres://vsg:vsg@localhost:5432/vsg_test
         run: |
           cd apps/gateway-nestjs
           npm test --silent

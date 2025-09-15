@@ -101,7 +101,6 @@ async function bootstrap() {
     customSiteTitle: 'VN Speech Guardian API Docs',
   });
   // also serve the raw JSON at a stable endpoint
-  app.getHttpServer().on && app.getHttpServer();
   app.use('/api/docs-json', (req, res) => res.json(document));
 
   const port = process.env.PORT || 3001;
