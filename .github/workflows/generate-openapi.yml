@@ -1,0 +1,49 @@
+name: Generate OpenAPI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'apps/gateway-nestjs/**'
+
+jobs:
+  generate-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Install gateway deps
+        run: |
+          cd apps/gateway-nestjs
+          npm ci
+
+      - name: Run OpenAPI generator
+        run: |
+          cd apps/gateway-nestjs
+          npm run generate:openapi --silent
+
+      - name: Assert openapi.json exists
+        run: |
+          if [ ! -f apps/gateway-nestjs/public/openapi.json ]; then
+            echo "openapi.json not found" >&2
+            exit 1
+          fi
+
+      - name: Basic validation (schemas present)
+        run: |
+          jq '.components.schemas | keys' apps/gateway-nestjs/public/openapi.json
+          for name in UserSwaggerDto SessionDto SessionResponseDto SessionListResponseDto TranscriptListResponseDto; do
+            if ! jq -e --arg name "$name" '.components.schemas[$name] // empty' apps/gateway-nestjs/public/openapi.json >/dev/null; then
+              echo "Schema $name missing" >&2
+              jq '.components.schemas' apps/gateway-nestjs/public/openapi.json || true
+              exit 2
+            fi
+          done
