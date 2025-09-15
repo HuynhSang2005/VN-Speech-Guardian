@@ -1,309 +1,196 @@
-# Clerk Authentication Integration Guide
+# Frontend guide — Clerk integration (recommended setup)
 
-## Overview
-This guide shows how to integrate Clerk authentication on the frontend with our NestJS backend. The backend automatically handles user creation/sync when you send Clerk tokens.
+This document is a concise, frontend-focused guide for integrating Clerk with the VN Speech Guardian frontend and the NestJS gateway.
 
-## Frontend Setup (React with Clerk)
+Goals:
+- Authenticate users with Clerk on the frontend
+- Send Clerk token to the gateway to create/sync a local user
+- Use the Clerk token for authenticated REST and WebSocket calls
 
-### 1. Install Clerk React
+Prerequisites
+- Frontend: React + Vite (TypeScript recommended)
+- You have a Clerk project and a publishable key for the frontend
+
+1) Install
+
 ```bash
 npm install @clerk/clerk-react
 ```
 
-### 2. Setup Clerk Provider
+2) Wrap your app with ClerkProvider
+
 ```tsx
 // src/main.tsx
-import { ClerkProvider } from '@clerk/clerk-react';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { ClerkProvider } from '@clerk/clerk-react'
+import App from './App'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <App />
     </ClerkProvider>
-  </React.StrictMode>
-);
+  </React.StrictMode>,
+)
 ```
 
-### 3. Create Auth Hook
+3) Auth hook (recommended)
+
+Create a small hook to centralise token retrieval and backend sync. Key behaviors:
+- Wait until Clerk is loaded
+- When signed in, get the Clerk token and POST to `/api/auth/clerk` to sync the user
+- Expose { user, token, isLoading, isAuthenticated }
+
 ```tsx
 // src/hooks/useAuth.ts
-import { useAuth as useClerkAuth } from '@clerk/clerk-react';
-import { useEffect, useState } from 'react';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react'
+import { useEffect, useState } from 'react'
 
-interface User {
-  id: string;
-  email: string;
-  role: string;
-  clerkId: string;
-}
+type UserShape = { id: string; email: string; role: string; clerkId: string }
 
-interface AuthState {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  token: string | null;
-}
-
-export function useAuth(): AuthState {
-  const { isSignedIn, user, getToken, isLoaded } = useClerkAuth();
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-    token: null,
-  });
+export function useAuth() {
+  const { isSignedIn, getToken, isLoaded } = useClerkAuth()
+  const { user } = useUser()
+  const [token, setToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [localUser, setLocalUser] = useState<UserShape | null>(null)
 
   useEffect(() => {
-    async function syncUser() {
-      if (!isLoaded) return;
-
+    let mounted = true
+    async function sync() {
+      if (!isLoaded) return
       if (!isSignedIn || !user) {
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          token: null,
-        });
-        return;
+        if (mounted) {
+          setToken(null)
+          setLocalUser(null)
+          setIsLoading(false)
+        }
+        return
       }
 
       try {
-        // VI: lấy token từ Clerk
-        const token = await getToken();
-        
-        // VI: sync user với backend
-        const response = await fetch('/api/auth/clerk', {
+        const t = await getToken()
+        if (!mounted) return
+        setToken(t)
+
+        // Sync with gateway. Gateway accepts token in Authorization header or body.
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/clerk`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        })
 
-        if (!response.ok) {
-          throw new Error('Failed to sync user');
+        if (res.ok) {
+          const body = await res.json()
+          if (mounted) setLocalUser(body.data?.user ?? null)
+        } else {
+          console.warn('Auth sync failed', await res.text())
         }
-
-        const data = await response.json();
-
-        setAuthState({
-          user: data.data.user,
-          isLoading: false,
-          isAuthenticated: true,
-          token,
-        });
-      } catch (error) {
-        console.error('Auth sync error:', error);
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          token: null,
-        });
+      } catch (err) {
+        console.error('Auth error', err)
+      } finally {
+        if (mounted) setIsLoading(false)
       }
     }
 
-    syncUser();
-  }, [isLoaded, isSignedIn, user, getToken]);
-
-  return authState;
-}
-```
-
-### 4. API Client with Auto Auth
-```tsx
-// src/services/apiClient.ts
-import { useAuth } from '@clerk/clerk-react';
-
-class ApiClient {
-  private baseURL = 'http://localhost:3001';
-
-  async request(endpoint: string, options: RequestInit = {}) {
-    const token = await useAuth().getToken();
-    
-    return fetch(`${this.baseURL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
-        ...options.headers,
-      },
-    });
-  }
-
-  async get(endpoint: string) {
-    const response = await this.request(endpoint);
-    return response.json();
-  }
-
-  async post(endpoint: string, data: any) {
-    const response = await this.request(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  }
-}
-
-export const apiClient = new ApiClient();
-```
-
-### 5. Protected Route Component
-```tsx
-// src/components/ProtectedRoute.tsx
-import { useAuth } from '../hooks/useAuth';
-import { SignIn } from '@clerk/clerk-react';
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredRole?: 'USER' | 'ADMIN';
-}
-
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <SignIn />;
-  }
-
-  if (requiredRole && user?.role !== requiredRole) {
-    return <div>Access denied. Required role: {requiredRole}</div>;
-  }
-
-  return <>{children}</>;
-}
-```
-
-### 6. Usage Examples
-```tsx
-// src/App.tsx
-import { useAuth } from './hooks/useAuth';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { SignIn, UserButton } from '@clerk/clerk-react';
-
-function App() {
-  const { user, isAuthenticated } = useAuth();
-
-  return (
-    <div className="App">
-      {isAuthenticated ? (
-        <>
-          <div>Welcome, {user?.email}!</div>
-          <div>Role: {user?.role}</div>
-          <UserButton />
-          
-          <ProtectedRoute>
-            <SessionsList />
-          </ProtectedRoute>
-
-          <ProtectedRoute requiredRole="ADMIN">
-            <AdminPanel />
-          </ProtectedRoute>
-        </>
-      ) : (
-        <SignIn />
-      )}
-    </div>
-  );
-}
-```
-
-## WebSocket Authentication
-
-### Frontend WebSocket Setup
-```tsx
-// src/hooks/useWebSocket.ts
-import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { useAuth } from './useAuth';
-
-export function useWebSocket(namespace: string = '') {
-  const { token, isAuthenticated } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated || !token) return;
-
-    // VI: connect với auth token
-    socketRef.current = io(`http://localhost:3001${namespace}`, {
-      auth: {
-        token,
-      },
-      extraHeaders: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
+    sync()
     return () => {
-      socketRef.current?.disconnect();
-    };
-  }, [token, isAuthenticated, namespace]);
+      mounted = false
+    }
+  }, [isLoaded, isSignedIn, user, getToken])
 
-  return socketRef.current;
+  return { user: localUser, token, isLoading, isAuthenticated: !!localUser }
 }
 ```
 
-## Backend API Endpoints
+4) Small API helper
 
-### POST /api/auth/clerk
-**Purpose**: Verify Clerk token and sync user to database
-**Request**: 
-- Body: `{ "token": "clerk-jwt-token" }` (optional if using Authorization header)
-- Header: `Authorization: Bearer <clerk-jwt-token>`
+Don't call Clerk hooks from non-component code — pass token down or create a thin helper that receives token.
 
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "cm4abc123",
-      "email": "user@example.com", 
-      "role": "USER",
-      "clerkId": "user_xyz789"
-    }
+```ts
+// src/services/apiClient.ts
+export class ApiClient {
+  constructor(private baseUrl = (import.meta.env.VITE_API_URL || '')) {}
+
+  async request(path: string, token: string | null, options: RequestInit = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch(`${this.baseUrl}${path}`, { ...options, headers })
+    return res
+  }
+
+  async getJson(path: string, token: string | null) {
+    const res = await this.request(path, token)
+    return res.json()
   }
 }
+
+export const apiClient = new ApiClient()
 ```
 
-### GET /api/auth/me
-**Purpose**: Get current authenticated user info
-**Request**: `Authorization: Bearer <clerk-jwt-token>`
-**Response**: Same as above
+5) WebSocket / audio connections
 
-## Environment Variables
+Use the Clerk token for authentication when opening Socket.IO connections. Send token either via `auth` payload or `extraHeaders`.
 
-### Frontend (.env)
+```ts
+// src/hooks/useWebSocket.ts
+import { useEffect, useRef } from 'react'
+import { io, type Socket } from 'socket.io-client'
+
+export function useWebSocket(namespace = '/audio', token?: string | null) {
+  const ref = useRef<Socket | null>(null)
+  useEffect(() => {
+    if (!token) return
+    ref.current = io(`${import.meta.env.VITE_API_URL || ''}${namespace}`, {
+      auth: { token },
+      extraHeaders: { Authorization: `Bearer ${token}` },
+    })
+
+    return () => ref.current?.disconnect()
+  }, [namespace, token])
+
+  return ref.current
+}
+```
+
+6) Key backend endpoints (quick reference)
+
+- POST /api/auth/clerk
+  - Purpose: Verify Clerk token (Authorization header or { token }) and create/sync local user
+  - Returns: { success: true, data: { user } }
+
+- GET /api/auth/me
+  - Purpose: Get current user (uses guard)
+
+- Sessions and Stats endpoints exist (see OpenAPI snapshot `apps/gateway-nestjs/public/openapi.json`).
+
+7) Environment variables (FE)
+
+Create a `.env` with:
+
 ```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-VITE_API_URL=http://localhost:3001
+VITE_CLERK_PUBLISHABLE_KEY=pk_live_...
+VITE_API_URL=http://localhost:3000
 ```
 
-### Backend (.env)
-```env
-CLERK_SECRET_KEY=sk_test_...
-CLERK_JWT_KEY=your-clerk-jwt-key
-ADMIN_EMAIL_DOMAINS=@yourcompany.com,@admin.com
-```
+8) WebSocket notes & best practices
 
-## Key Benefits
+- Send token on connection; gateway uses guard to validate.
+- If you plan to stream audio, chunk at 200–1000ms windows to reduce latency.
+- Handle disconnects & reconnection logic; server may retry to FastAPI on transient errors.
 
-1. **No Token Exchange**: Frontend uses Clerk tokens directly
-2. **Auto User Sync**: Backend automatically creates/updates users
-3. **Role Management**: Supports role-based access control
-4. **WebSocket Support**: Authenticated WebSocket connections
-5. **Simple Integration**: Minimal setup required on frontend
+9) Troubleshooting
 
-## Security Notes
+- 401 from `/api/auth/clerk`: verify token is a Clerk session token and `CLERK_JWT_KEY` is set on backend.
+- Generator/Swagger: If generator fails, backend may attempt DB connection; run `npm run generate:openapi` from `apps/gateway-nestjs` after `npm ci`.
 
-- All Clerk tokens are verified server-side
-- Users are automatically synced to local database
-- Roles can be managed via Clerk metadata
-- WebSocket connections require authentication
-- CORS is configured for development
+10) Example flow (summary)
+
+1. User signs in via Clerk on FE.
+2. FE hook retrieves Clerk token and POSTs to `/api/auth/clerk`.
+3. Gateway verifies token, creates/updates local user, returns local user in response.
+4. FE reuses the Clerk token for REST calls and WebSocket auth.
+
+If you want, I can also produce small copy-paste components for production-ready error handling and retry logic. 
