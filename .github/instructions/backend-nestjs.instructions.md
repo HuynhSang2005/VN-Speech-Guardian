@@ -20,7 +20,7 @@ applyTo: "apps/gateway-nest/**/*"
 - @nestjs/throttler v6 (array form config, ttl in ms)
 - Pino (nestjs-pino)
 - prom-client (metrics), helmet, cookie-parser, socket.io
-
+x`
 ## 3. Folder detail
 apps/gateway-nestjs/
 ├─ src/

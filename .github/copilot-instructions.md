@@ -48,19 +48,43 @@ vn-speech-guardian/
 │  │  └─ Dockerfile
 │  │
 │  ├─ ai-worker/                           # FastAPI AI
-│  │  ├─ src/
-│  │  │  ├─ main.py
-│  │  │  ├─ lifespan.py
-│  │  │  ├─ streaming.py
-│  │  │  ├─ asr_engine.py
-│  │  │  ├─ moderation.py
-│  │  │  ├─ vad.py
-│  │  │  └─ utils/
+│  │  ├─ app/
+│  │  │  ├─ __init__.py
+│  │  │  ├─ main.py                # entrypoint FastAPI app
+│  │  │  ├─ lifespan.py            # event startup/shutdown nạp model
+│  │  │  ├─ routers/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ asr.py             # routes cho speech to text
+│  │  │  │  └─ moderation.py      # routes cho phân loại/kiểm duyệt
+│  │  │  ├─ schemas/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ asr_schema.py
+│  │  │  │  └─ moderation_schema.py
+│  │  │  ├─ services/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ asr_service.py     # wrapper faster-whisper
+│  │  │  │  └─ bert_service.py    # wrapper phoBERT-base
+│  │  │  ├─ models/
+│  │  │  │  ├─ README.md          # hướng dẫn tải về và sử dụng
+│  │  │  │  ├─ speech_to_text/    # symbolic link hoặc meta về faster-whisper
+│  │  │  │  └─ bert/              # symbolic link hoặc meta về phoBERT-base
+│  │  │  ├─ datasets/
+│  │  │  │  ├─ README.md          # hướng dẫn tải ViHSD
+│  │  │  │  └─ viHSD/             # dataset mẫu hoặc symbolic link
+│  │  │  ├─ utils/
+│  │  │  │  └─ utils.py
+│  │  │  └─ core/
+│  │  │     ├─ config.py
+│  │  │     └─ security.py
 │  │  ├─ tests/
-│  │  ├─ models/            
+│  │  │  ├─ __init__.py
+│  │  │  ├─ test_asr.py
+│  │  │  └─ test_moderation.py
 │  │  ├─ requirements.txt
 │  │  ├─ pytest.ini
-│  │  └─ Dockerfile
+│  │  ├─ Dockerfile
+│  │  ├─ README.md
+│  │  └─ .env
 │  │
 │  └─ web/                                # React + Vite + TS
 │     ├─ src/
@@ -142,6 +166,11 @@ vn-speech-guardian/
 |---|---|---|
 | **NestJS Gateway** | - Auth (Clerk JWT), REST, WS fallback, rate-limit, dashboard, DB<br>- Chịu **tải cao** (1-3k connection) | Node event-loop + pm2 phù hợp **I/O nặng**, **không block** AI |
 | **FastAPI AI** | - VAD → ASR → Moderation (CPU-heavy)<br>- Emit kết quả về Nest | Python ecosystem **AI tốt nhất**, **ít connection** → dùng **CPU riêng** |
+
+Lưu ý AI worker
+- Dùng models local trong repo: `models-and-dataset/phobert-base/` và `models-and-dataset/ViHSD/ViHSD.csv` (fine-tune offline nếu cần).
+- Whisper dùng `faster-whisper` cài qua pip; mặc định `ASR_MODEL_NAME=small`, `ASR_LANGUAGE=vi`.
+- Endpoint ưu tiên binary-efficient: `POST /asr/stream` nhận `application/octet-stream` theo Forward protocol ở mục 9.
 
 ---
 

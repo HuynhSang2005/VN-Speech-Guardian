@@ -5,7 +5,7 @@ applyTo: "apps/ai-worker/**/*"
 # Backend Python FastAPI AI – Instructions
 **Mục tiêu:** FastAPI tối giản cung cấp 2 endpoint:
 
-* `POST /asr` nhận file âm thanh, trả transcript bằng Whisper.
+* `POST /asr/stream` nhận bytes `application/octet-stream` (PCM16LE 16kHz mono), trả transcript bằng Whisper.
 * `POST /moderation` nhận mảng câu, trả nhãn từ PhoBERT đã fine-tune.
 
 **Kết nối:** FE → NestJS Gateway → FastAPI. Gateway gọi HTTP. Bảo vệ bằng header `x-api-key`.
@@ -55,21 +55,47 @@ TEXT_MAX_LEN=256
 
 ---
 
-## 4) Cấu trúc thư mục tối thiểu
+## 4) Cấu trúc thư mục tối thiểu (khớp repo)
 
 ```
-apps/ai-service/
+apps/ai-worker/
   app/
+    __init__.py
     main.py
-    api/
+    lifespan.py
+    routers/
+      __init__.py
       asr.py
       moderation.py
-    core/config.py
+    schemas/
+      __init__.py
+      asr_schema.py
+      moderation_schema.py
+    services/
+      __init__.py
+      asr_service.py
+      bert_service.py
     models/
-      whisper.py
-      phobert.py
-  models/
-    phobert-mvp/          # checkpoint sau khi train (offline)
+      README.md
+      speech_to_text/
+      bert/
+    datasets/
+      README.md
+      viHSD/
+    utils/
+      utils.py
+    core/
+      config.py
+      security.py
+  tests/
+    __init__.py
+    test_asr.py
+    test_moderation.py
+  requirements.txt
+  pytest.ini
+  Dockerfile
+  README.md
+  .env
 ```
 
 ---
@@ -80,17 +106,18 @@ apps/ai-service/
 
 * `GET /healthz` → `{ "status": "ok" }`
 
-### 5.2 ASR
+### 5.2 ASR (binary-efficient)
 
-* `POST /asr` (`multipart/form-data`, field `file`)
+* `POST /asr/stream` (`application/octet-stream`)
+* Headers: `x-session-id`, `x-chunk-seq?`, `x-final?`
 * Trả:
 
 ```json
 {
-  "text": "xin chao ...",
-  "segments": [
-    {"start":0.0,"end":2.1,"text":"xin chao"}
-  ]
+  "status": "ok",
+  "partial": { "text": "..." },
+  "final": { "text": "...", "words": [] },
+  "detections": []
 }
 ```
 
@@ -130,7 +157,7 @@ class Cfg:
   ASR_DEVICE = os.getenv("ASR_DEVICE","cpu")
   ASR_LANG = os.getenv("ASR_LANGUAGE","vi")
   ASR_BEAM = int(os.getenv("ASR_BEAM_SIZE","5"))
-  PHOBERT_DIR = os.getenv("PHOBERT_CHECKPOINT_DIR","./models/phobert-mvp")
+  PHOBERT_DIR = os.getenv("PHOBERT_CHECKPOINT_DIR","./models-and-dataset/phobert-base")
   LABEL_MAP = json.loads(os.getenv("MOD_LABELS_JSON",'{"safe":0,"warn":1,"block":2}'))
   TEXT_MAX_LEN = int(os.getenv("TEXT_MAX_LEN","256"))
 cfg = Cfg()
@@ -143,12 +170,21 @@ from faster_whisper import WhisperModel
 from app.core.config import cfg
 model = WhisperModel(cfg.ASR_NAME, device=cfg.ASR_DEVICE)
 
-def transcribe(path:str):
-  segs, info = model.transcribe(path, language=cfg.ASR_LANG, beam_size=cfg.ASR_BEAM)
-  out = []
-  for s in segs:
-    out.append({"start": s.start, "end": s.end, "text": s.text.strip()})
-  return {"text":" ".join(x["text"] for x in out).strip(), "segments": out}
+def transcribe_bytes(data:bytes):
+  # Gợi ý: ghi tạm ra file rồi dùng model.transcribe(path) để đơn giản MVP
+  import tempfile, pathlib
+  with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
+    tmp.write(data)
+    tmp.flush()
+    path = tmp.name
+  try:
+    segs, info = model.transcribe(path, language=cfg.ASR_LANG, beam_size=cfg.ASR_BEAM)
+    out = []
+    for s in segs:
+      out.append({"start": s.start, "end": s.end, "text": s.text.strip()})
+    return {"text":" ".join(x["text"] for x in out).strip(), "segments": out}
+  finally:
+    pathlib.Path(path).unlink(missing_ok=True)
 ```
 
 `app/models/phobert.py`
@@ -176,8 +212,8 @@ def predict(batch:list[str]):
 `app/api/asr.py`
 
 ```python
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Header
-from app.models.whisper import transcribe
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
+from app.models.whisper import transcribe_bytes
 from app.core.config import cfg
 import tempfile, pathlib, shutil
 
@@ -186,17 +222,13 @@ router = APIRouter()
 def auth(x_api_key:str|None=Header(None)):
   if x_api_key != cfg.API_KEY: raise HTTPException(401, "invalid api key")
 
-@router.post("/asr")
-def asr(file: UploadFile = File(...), _=Depends(auth)):
-  if pathlib.Path(file.filename).suffix.lower() not in {".wav",".mp3",".m4a",".ogg",".flac"}:
-    raise HTTPException(400, "unsupported audio format")
-  with tempfile.NamedTemporaryFile(delete=False) as tmp:
-    shutil.copyfileobj(file.file, tmp)
-    path = tmp.name
-  try:
-    return transcribe(path)
-  finally:
-    pathlib.Path(path).unlink(missing_ok=True)
+@router.post("/asr/stream")
+async def asr_stream(request: Request, x_session_id: str | None = Header(None), _=Depends(auth)):
+  if not x_session_id:
+    raise HTTPException(400, "missing x-session-id")
+  data = await request.body()
+  result = transcribe_bytes(data)
+  return {"status":"ok", "final": {"text": result["text"], "words": []}, "detections": []}
 ```
 
 `app/api/moderation.py`

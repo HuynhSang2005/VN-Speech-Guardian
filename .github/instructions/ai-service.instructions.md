@@ -1,14 +1,14 @@
 # ai-service.instructions.md 
 
-**Mục tiêu:** Chuẩn hóa cách **huấn luyện offline** PhoBERT trên `dataset.csv`, sau đó **deploy suy luận** trong FastAPI. Whisper dùng thẳng, không cần huấn luyện.
+**Mục tiêu:** Chuẩn hóa cách **huấn luyện offline** PhoBERT trên `dataset.csv` (hoặc ViHSD), sau đó **deploy suy luận** trong FastAPI. Whisper dùng thẳng qua `faster-whisper`, không cần huấn luyện.
 
 ---
 
-## 1) Chuẩn dữ liệu `dataset.csv`
+## 1) Chuẩn dữ liệu `dataset.csv` (hoặc ViHSD)
 
 * Cột bắt buộc: `text`, `label`
 * Nhãn dùng bộ ánh xạ: `{"safe":0,"warn":1,"block":2}`
-* Ví dụ:
+* Ví dụ (CSV 2 cột):
 
 ```csv
 text,label
@@ -20,6 +20,12 @@ text,label
 ---
 
 ## 2) Huấn luyện PhoBERT (offline, 1 lệnh)
+Ưu tiên dùng checkpoint có sẵn trong repo nếu bạn chỉ muốn chạy suy luận nhanh:
+
+- Checkpoint PhoBERT đã có: `models-and-dataset/phobert-base/`
+- Dataset ViHSD mẫu: `models-and-dataset/ViHSD/ViHSD.csv`
+
+Nếu cần fine-tune, dùng script sau (ví dụ đơn giản với HuggingFace Trainer):
 
 Tạo `train_phobert.py` ở thư mục tạm bất kỳ:
 
@@ -29,8 +35,8 @@ from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
-DATASET="./apps/ai-service/data/dataset.csv"
-OUTDIR="./apps/ai-service/models/phobert-mvp"
+DATASET="./models-and-dataset/ViHSD/ViHSD.csv"  # hoặc đường dẫn dataset.csv tuỳ bạn
+OUTDIR="./apps/ai-worker/app/models/bert-finetuned"  # nơi lưu checkpoint fine-tune
 PRETRAINED="vinai/phobert-base"
 TEXT_MAX_LEN=256
 LABEL_MAP={"safe":0,"warn":1,"block":2}
@@ -76,21 +82,28 @@ Chạy:
 ```bash
 pip install -U transformers datasets scikit-learn accelerate evaluate
 python train_phobert.py
-# Kết quả: models/phobert-mvp/ gồm config.json, tokenizer.*, pytorch_model.bin...
+# Kết quả: OUTDIR gồm config.json, tokenizer.*, pytorch_model.bin...
 ```
 
 ---
 
-## 3) Copy checkpoint sang service
+## 3) Sử dụng checkpoint trong service
 
-* Đảm bảo thư mục: `apps/ai-service/models/phobert-mvp/`
-* Kiểm tra đọc được: khởi động FastAPI, gọi `POST /moderation`. Nếu thiếu checkpoint sẽ trả 503.
+Tại runtime, FastAPI AI sẽ đọc từ biến môi trường:
+
+```
+PHOBERT_CHECKPOINT_DIR=./models-and-dataset/phobert-base        # dùng checkpoint base có sẵn
+# hoặc trỏ tới checkpoint fine-tuned nếu bạn đã train
+# PHOBERT_CHECKPOINT_DIR=./apps/ai-worker/app/models/bert-finetuned
+```
+
+Khởi động FastAPI, gọi `POST /moderation`. Nếu thiếu checkpoint sẽ trả 503.
 
 ---
 
 ## 4) Whisper trong MVP
 
-* Dùng `faster-whisper` với `ASR_MODEL_NAME=small` trên CPU.
+* Dùng `faster-whisper` với `ASR_MODEL_NAME=small` trên CPU (cài qua `pip install faster-whisper`).
 * Mặc định `ASR_LANGUAGE=vi` để cố định tiếng Việt.
 * Thử với file `.wav` 16 kHz mono để ổn định.
 
