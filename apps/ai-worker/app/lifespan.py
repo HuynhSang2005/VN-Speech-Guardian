@@ -1,13 +1,38 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from .core.config import cfg
+
+
+def _load_models():  # pragma: no cover - nặng, không chạy trong unit test
+    whisper_model = None
+    phobert = None
+    try:
+        from faster_whisper import WhisperModel  # type: ignore
+
+        whisper_model = WhisperModel(
+            cfg.ASR_NAME,
+            device=cfg.ASR_DEVICE,
+            compute_type=cfg.ASR_COMPUTE_TYPE,
+        )
+    except Exception:
+        whisper_model = None
+
+    try:
+        # Placeholder PhoBERT load (tương lai sẽ thay bằng model thật)
+        phobert = None
+    except Exception:
+        phobert = None
+    return whisper_model, phobert
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TODO(P14): nạp model thật ở đây (faster-whisper, PhoBERT)
-    app.state.models = {
-        "whisper": None,
-        "phobert": None,
-    }
+    # Nạp model thật nếu được bật qua env để giữ test nhanh
+    whisper_model = None
+    phobert = None
+    if cfg.AI_LOAD_MODELS:
+        whisper_model, phobert = _load_models()
+
+    app.state.models = {"whisper": whisper_model, "phobert": phobert}
     yield
     # cleanup nếu cần

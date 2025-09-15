@@ -17,5 +17,7 @@ async def asr_stream(
     data = await request.body()
     if not data:
         raise HTTPException(status_code=400, detail="empty body")
-    res = transcribe_bytes(data)
+    # Lấy model whisper nếu đã nạp (AI_LOAD_MODELS=true)
+    model = getattr(request.app.state, "models", {}).get("whisper", None) if hasattr(request.app.state, "models") else None
+    res = transcribe_bytes(data, model=model)
     return {"status": "ok", "final": {"text": res["text"], "words": []}, "detections": []}

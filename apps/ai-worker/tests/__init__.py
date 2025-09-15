@@ -1,1 +1,1 @@
-# tests package
+# tests package  # pragma: no cover
