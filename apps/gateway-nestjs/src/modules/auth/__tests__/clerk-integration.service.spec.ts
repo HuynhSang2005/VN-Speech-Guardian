@@ -82,4 +82,32 @@ describe('ClerkIntegrationService', () => {
     (service as any).clerkClient.users.getUser = jest.fn().mockResolvedValueOnce(null);
     await expect(service.getOrCreateUser('missing')).rejects.toThrow('User not found in Clerk');
   });
+
+  it('creates a new user when not present in DB', async () => {
+    (prisma.user!.findUnique as jest.Mock).mockResolvedValueOnce(null);
+    const clerkUser = { id: 'c2', emailAddresses: [{ emailAddress: 'new@company.com' }], publicMetadata: {} } as any;
+    (service as any).clerkClient.users.getUser = jest.fn().mockResolvedValueOnce(clerkUser);
+    const created = { id: 'u2', clerkId: 'c2', email: 'new@company.com', createdAt: new Date('2021-02-02T00:00:00Z') } as any;
+    (prisma.user!.create as jest.Mock).mockResolvedValueOnce(created);
+
+    const res = await service.getOrCreateUser('c2');
+    expect(res.clerkId).toBe('c2');
+    expect(res.createdAt).toBe('2021-02-02T00:00:00.000Z');
+  });
+
+  it('syncUserData updates user when update succeeds', async () => {
+    const clerkUser = { id: 'c9', emailAddresses: [{ emailAddress: 's@a.com' }], publicMetadata: {} } as any;
+    (service as any).clerkClient.users.getUser = jest.fn().mockResolvedValueOnce(clerkUser);
+    const updated = { id: 'u9', clerkId: 'c9', email: 's@a.com', createdAt: new Date('2022-03-03T00:00:00Z') } as any;
+    (prisma.user!.update as jest.Mock).mockResolvedValueOnce(updated);
+
+    const res = await service.syncUserData('c9');
+    expect(res.clerkId).toBe('c9');
+    expect(res.createdAt).toBe('2022-03-03T00:00:00.000Z');
+  });
+
+  it('determineUserRole returns ADMIN when publicMetadata.isAdmin is true', () => {
+    const role = (service as any).determineUserRole({ publicMetadata: { isAdmin: true }, emailAddresses: [{ emailAddress: 'a@b.com' }] });
+    expect(role).toBe('ADMIN');
+  });
 });
