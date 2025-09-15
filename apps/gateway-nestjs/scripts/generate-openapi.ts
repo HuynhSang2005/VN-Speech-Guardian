@@ -14,6 +14,14 @@ const argv = process.argv.slice(2).reduce<Record<string, string | boolean>>((acc
 }, {} as Record<string, string | boolean>);
 
 async function generate() {
+  // If SKIP_DB is set, set an env var so PrismaService can skip connecting in its onModuleInit
+  // (PrismaService currently always connects; SKIP_DB allows generator to run without DB)
+  const skipDb = process.env.SKIP_DB === 'true' || process.env.SKIP_DB === '1';
+  if (skipDb) {
+    process.env.SKIP_DB = '1';
+    if ((argv as any).verbose) console.log('SKIP_DB enabled: generator will attempt to boot AppModule without DB');
+  }
+
   const app = await NestFactory.create(AppModule, { logger: false });
 
   const config = new DocumentBuilder()
