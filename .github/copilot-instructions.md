@@ -172,6 +172,62 @@ if (cleanCount >= 3 && isToxic) isToxic = false;
 
 ---
 
+## 9) Forward protocol (Gateway → FastAPI AI) — implementation notes
+
+Khi triển khai FastAPI AI, cần tuân theo giao thức binary-efficient sau để giảm overhead so với JSON/base64 và dễ đạt độ trễ thấp:
+
+- Endpoint: POST /asr/stream (ví dụ) hoặc /asr/chunk
+- Content-Type: application/octet-stream
+- Headers:
+	- x-session-id: string  # session id từ Gateway (sessionId)
+	- x-chunk-seq: number? # (tuỳ chọn) sequence number cho chunk ordering
+	- x-final: boolean?    # (tuỳ chọn) đánh dấu chunk cuối
+
+- Body: raw bytes (PCM16LE 16kHz mono) — Gateway sẽ gửi Buffer thẳng (không base64).
+
+- Response (success 200): application/json
+	{
+		"status": "ok",
+		"partial": { "text": "..." },     // tuỳ theo streaming
+		"final": { "text": "...", "words": [...] },
+		"detections": [ { "label":"OFFENSIVE", "score":0.92, "startMs":100, "endMs":800, "snippet":"..." } ]
+	}
+
+- Error handling:
+	- 400: bad request (malformed audio / unsupported sample rate)
+	- 429: backpressure / rate limit
+	- 500: internal error — Gateway nên retry 0..3 lần với exponential backoff (100ms → 300ms → 1s) trước khi emit `error` event cho client.
+
+- Performance & chunking:
+	- Gateway gửi chunks nhỏ (20–100 ms frames aggregated into ~200–1000 ms payloads) to reduce network overhead and allow low-latency partials.
+	- FastAPI nên hỗ trợ streaming POST (chunked transfer) hoặc accept repeated POSTs. Nếu dùng streaming, FastAPI endpoint có thể read raw body in async loop.
+
+- Contract guarantees:
+	- Gateway gửi PCM16LE 16kHz mono. Nếu FastAPI supports other sample rates, convert centrally and document in README.
+	- Response must include explicit `final` payloads and `detections` array (can be empty) so Gateway áp dụng hysteresis logic.
+
+- Implementation tips (FastAPI):
+	- Use `async def` with `await request.body()` for small requests, or `await request.stream()` / `async for chunk in request.stream()` for streaming.
+	- Validate headers early and return 400 if sessionId missing.
+	- Keep inference CPU-bound isolated (worker thread/process) and return partials asap.
+	- Endpoint example (pseudo):
+
+```py
+from fastapi import FastAPI, Request, Header, HTTPException
+
+@app.post('/asr/stream')
+async def asr_stream(request: Request, x_session_id: str | None = Header(None)):
+		if not x_session_id:
+				raise HTTPException(400, 'missing x-session-id')
+		# read bytes (or stream) and process
+		data = await request.body()
+		# run VAD → ASR → moderation → return json
+		return { 'status':'ok', 'final': {'text': '...'}, 'detections': [] }
+```
+
+---
+
+
 ## 6) Workflow – **daily**
 
 1. **Copilot đọc** `.github/instructions/<module>.instructions.md`

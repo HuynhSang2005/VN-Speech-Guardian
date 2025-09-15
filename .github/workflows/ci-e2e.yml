@@ -1,0 +1,59 @@
+name: CI - Unit & E2E
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: vsg_test
+          POSTGRES_USER: vsg
+          POSTGRES_PASSWORD: vsg
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vsg -d vsg_test" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps
+        run: |
+          cd apps/gateway-nestjs
+          npm ci --no-audit --no-fund
+
+      - name: Dependency audit (fail on moderate+)
+        run: |
+          cd apps/gateway-nestjs
+          npm audit --audit-level=moderate --json > audit.json || true
+          cat audit.json
+          node -e "const a=require('./apps/gateway-nestjs/audit.json'); if (a.metadata && a.metadata.vulnerabilities && Object.values(a.metadata.vulnerabilities).slice(2).some(v=>v>0)) { console.error('Moderate+ vulnerabilities found'); process.exit(1) }"
+
+      - name: Wait for Postgres
+        run: |
+          docker run --rm --net=host appropriate/curl:latest --retry 5 --retry-delay 1 --silent --show-error http://localhost:5432 || true
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgres://vsg:vsg@localhost:5432/vsg_test
+        run: |
+          cd apps/gateway-nestjs
+          npx prisma migrate deploy
+
+      - name: Run tests
+        run: |
+          cd apps/gateway-nestjs
+          npm test --silent
+          npm run test:e2e --silent

@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/apps/gateway-nestjs"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # optional: ignore major updates if you want manual reviews
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
