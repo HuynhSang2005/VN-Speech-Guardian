@@ -2,11 +2,15 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { CommonModule } from './common/common.module';
 import { WsModule } from './modules/ws/ws.module';
+import { HealthController } from './modules/health/health.controller';
+import { MetricsController } from './modules/metrics/metrics.controller';
 
 @Module({
   imports: [
@@ -32,13 +36,35 @@ import { WsModule } from './modules/ws/ws.module';
         },
       },
     }),
+    // Basic rate limiting for MVP: configurable via env.
+    // To disable throttling for tests/CI set DISABLE_THROTTLER=1.
+    ThrottlerModule.forRoot({
+      ttl: Number(process.env.THROTTLE_TTL || 60),
+      limit:
+        process.env.DISABLE_THROTTLER === '1'
+          ? Number(process.env.THROTTLE_LIMIT || 1000000)
+          : Number(process.env.THROTTLE_LIMIT || 60),
+    }),
   CommonModule,
   AuthModule,
   SessionsModule,
   StatsModule,
   WsModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [HealthController, MetricsController],
+  providers: [
+    // Register ThrottlerGuard as a global guard via APP_GUARD token
+    // Can be disabled in CI/local runs by setting DISABLE_THROTTLER=1
+    ...(process.env.DISABLE_THROTTLER === '1'
+      ? []
+      : [
+          {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+          },
+        ]),
+  ],
 })
 export class AppModule {}
+
+

@@ -4,6 +4,8 @@ describe('PrismaService', () => {
   let svc: PrismaService;
 
   beforeEach(() => {
+    // ensure SKIP_DB is unset for this unit test to exercise connect logic
+    delete process.env.SKIP_DB;
     svc = new PrismaService();
     // mock $connect/$disconnect to avoid real DB calls
     (svc as any).$connect = jest.fn().mockResolvedValue(undefined);

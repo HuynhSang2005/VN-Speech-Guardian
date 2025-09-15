@@ -1,33 +1,63 @@
 /**
- * import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { Logger as PinoLogger } from 'nestjs-pino';
-import * as cookieParser from 'cookie-parser';
-import { AppModule } from './app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // VI: cookie parser cho Clerk session cookies
-  app.use(cookieParser());
-
-  // VI: sử dụng Pino logger thay vì default logger
-  app.useLogger(app.get(PinoLogger));ntrypoint NestJS app với Swagger, CORS, logging
- * Input:  AppModule
- * Output: HTTP server listening trên PORT
- * Edge:   port bận → auto increment hoặc error
- * Research: https://docs.nestjs.com/first-steps#setup
+ * Bootstrap NestJS application: logging, CORS, validation, throttling and Swagger
  */
-
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Logger as PinoLogger } from 'nestjs-pino';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import * as Sentry from '@sentry/node';
+import * as client from 'prom-client';
+import helmet from 'helmet';
+import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
+import path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security hardening
+  app.use(helmet());
+
+  // CORS: allow list from env CORS_ORIGINS (comma-separated). If not set, default to localhost dev origins.
+  const rawOrigins = process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173';
+  const allowedOrigins = rawOrigins.split(',').map((s) => s.trim()).filter(Boolean);
+  app.enableCors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (e.g., curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  });
+
+  // Prometheus default metrics
+  client.collectDefaultMetrics();
+
+  // Sentry init (optional)
+  if (process.env.SENTRY_DSN) {
+    let release = process.env.SENTRY_RELEASE;
+    if (!release) {
+      try {
+        // Try to read package.json version
+        // path.resolve works both in ts-node and compiled dist
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pkg = require(path.resolve(__dirname, '../../package.json'));
+        release = pkg?.version;
+      } catch (e) {
+        // ignore
+      }
+    }
+    Sentry.init({ dsn: process.env.SENTRY_DSN, release });
+    // Register global exception filter
+    app.useGlobalFilters(new SentryExceptionFilter());
+  }
 
   // sử dụng Pino logger thay vì default logger
   app.useLogger(app.get(PinoLogger));
@@ -45,6 +75,8 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+
+  // ThrottlerGuard is registered globally in AppModule via APP_GUARD
 
   //  Swagger / OpenAPI documentation setup
   const config = new DocumentBuilder()

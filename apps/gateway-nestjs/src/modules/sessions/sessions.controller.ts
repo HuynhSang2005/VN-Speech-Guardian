@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Get, Query, Param, Delete, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Param, Delete, ParseIntPipe, DefaultValuePipe, UsePipes } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
-import { CreateSessionDto, ListSessionsQueryDto, CreateSessionSwaggerDto } from './dto/sessions.dto';
+import { CreateSessionDto, ListSessionsQueryDto, CreateSessionSwaggerDto, CreateSessionSchema } from './dto/sessions.dto';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiOkResponse, ApiExtraModels, ApiCreatedResponse } from '@nestjs/swagger';
 import { TranscriptDto } from './dto/transcript.model.dto';
 import { DetectionDto } from '../detections/detection.dto';
@@ -17,7 +18,7 @@ export class SessionsController {
   @Post()
   @ApiOperation({ summary: 'Create a new session' })
   @ApiCreatedResponse({ description: 'Session created', type: SessionCreateResponseDto })
-  async create(@Body() body: CreateSessionDto) {
+  async create(@Body(new ZodValidationPipe(CreateSessionSchema)) body: CreateSessionDto) {
     return { success: true, data: await this.sessionsService.create(body as any) };
   }
 
