@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './modules/auth/auth.module';
+import { SessionsModule } from './modules/sessions/sessions.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { CommonModule } from './common/common.module';
 import { WsModule } from './modules/ws/ws.module';
 
@@ -32,6 +34,8 @@ import { WsModule } from './modules/ws/ws.module';
     }),
   CommonModule,
   AuthModule,
+  SessionsModule,
+  StatsModule,
   WsModule,
   ],
   controllers: [],

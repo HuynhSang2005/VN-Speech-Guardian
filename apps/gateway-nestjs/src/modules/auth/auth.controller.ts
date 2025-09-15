@@ -21,13 +21,15 @@ import {
 import { ClerkIntegrationService } from './clerk-integration.service';
 import { AuthService } from './auth.service';
 import { ClerkGuard } from '../../common/guards/clerk.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiExtraModels, ApiOkResponse } from '@nestjs/swagger';
+import { UserSwaggerDto } from './dto/auth.dto';
 import type { LoginRequest, UserDto } from './dto/auth.dto';
 
 type AuthResponse = { success: boolean; data: { accessToken?: string; user: UserDto } };
 
 @ApiTags('Authentication')
 @Controller('api/auth')
+@ApiExtraModels(UserSwaggerDto)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
@@ -42,29 +44,7 @@ export class AuthController {
     summary: 'Verify Clerk token and sync user to database',
     description: 'Send Clerk JWT either in request body or Authorization header. User will be created/synced in database.'
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Successfully verified token and synced user',
-    schema: {
-      properties: {
-        success: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                role: { type: 'string' },
-                clerkId: { type: 'string' },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  @ApiOkResponse({ description: 'Successfully verified token and synced user', type: UserSwaggerDto })
   @ApiResponse({ status: 401, description: 'Invalid or expired Clerk token' })
   @ApiOperation({ summary: 'Verify Clerk token and sync user' })
   @ApiBody({ schema: { properties: { token: { type: 'string' } } } })
