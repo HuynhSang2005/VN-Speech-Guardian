@@ -54,7 +54,7 @@ jobs:
           cd apps/gateway-nestjs
           npm audit --audit-level=moderate --json > audit.json || true
           cat audit.json
-          node -e "const a=require('./apps/gateway-nestjs/audit.json'); if (a.metadata && a.metadata.vulnerabilities && Object.values(a.metadata.vulnerabilities).slice(2).some(v=>v>0)) { console.error('Moderate+ vulnerabilities found'); process.exit(1) }"
+          node -e "const a=require('./audit.json'); if (a.metadata && a.metadata.vulnerabilities && Object.values(a.metadata.vulnerabilities).slice(2).some(v=>v>0)) { console.error('Moderate+ vulnerabilities found'); process.exit(1) }"
 
       - name: Wait for Postgres
         run: |
@@ -96,7 +96,7 @@ jobs:
           # Run app briefly with SKIP_DB=1 and mock AI URL
           nohup env SKIP_DB=1 AI_WORKER_URL=http://localhost:8001 npm run start &
           APP_PID=$!
-          sleep 3
+          sleep 6
           node tooling/scripts/smoke-load-test.js
           kill $APP_PID || true
 
