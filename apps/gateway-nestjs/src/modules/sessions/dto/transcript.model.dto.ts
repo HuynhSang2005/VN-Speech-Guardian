@@ -24,3 +24,21 @@ export class TranscriptDto extends createZodDto(TranscriptSchema) {
 	endMs: number;
 }
 
+// Envelope DTOs for transcript list responses
+
+export class TranscriptListItemDto {
+	@ApiProperty({ type: [TranscriptDto] })
+	items: TranscriptDto[];
+
+	@ApiProperty({ example: 0 })
+	total: number;
+}
+
+export class TranscriptListResponseDto {
+	@ApiProperty({ example: true })
+	success: boolean;
+
+	@ApiProperty({ type: TranscriptListItemDto })
+	data: TranscriptListItemDto;
+}
+
