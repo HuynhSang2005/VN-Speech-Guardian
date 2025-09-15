@@ -37,4 +37,22 @@ describe('SessionsController', () => {
     expect(res).toHaveProperty('success', true);
     expect(res.data).toHaveProperty('id', 's1');
   });
+
+  it('get returns a single session', async () => {
+    const res = await controller.get('s1');
+    expect(res).toHaveProperty('success', true);
+    expect(res.data).toHaveProperty('id', 's1');
+  });
+
+  it('transcripts returns list', async () => {
+    (mockService.listTranscripts as any) = jest.fn().mockResolvedValue([{ id: 't1', text: 'hello' }]);
+    const res = await controller.transcripts('s1');
+    expect(res).toHaveProperty('success', true);
+    expect(res.data[0]).toHaveProperty('id', 't1');
+  });
+
+  it('remove propagates errors', async () => {
+    (mockService.remove as jest.Mock).mockRejectedValueOnce(new Error('delboom'));
+    await expect(controller.remove('s1')).rejects.toThrow('delboom');
+  });
 });
