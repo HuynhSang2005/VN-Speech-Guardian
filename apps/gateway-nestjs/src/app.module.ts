@@ -38,13 +38,17 @@ import { MetricsController } from './modules/metrics/metrics.controller';
     }),
     // Basic rate limiting for MVP: configurable via env.
     // To disable throttling for tests/CI set DISABLE_THROTTLER=1.
-    ThrottlerModule.forRoot({
-      ttl: Number(process.env.THROTTLE_TTL || 60),
-      limit:
-        process.env.DISABLE_THROTTLER === '1'
-          ? Number(process.env.THROTTLE_LIMIT || 1000000)
-          : Number(process.env.THROTTLE_LIMIT || 60),
-    }),
+    // Note: Throttler v6 expects the array form; ttl is in milliseconds.
+    ThrottlerModule.forRoot([
+      {
+        ttl:
+          Number(process.env.THROTTLE_TTL || 60) * 1000 /* interpret env as seconds */,
+        limit:
+          process.env.DISABLE_THROTTLER === '1'
+            ? Number(process.env.THROTTLE_LIMIT || 1000000)
+            : Number(process.env.THROTTLE_LIMIT || 60),
+      },
+    ]),
   CommonModule,
   AuthModule,
   SessionsModule,

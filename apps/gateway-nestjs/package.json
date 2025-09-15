@@ -26,7 +26,7 @@
     "gen:dtos": "node ../../tooling/scripts/gen-nest-dto.js"
   },
   "dependencies": {
-    "@clerk/backend": "^1.0.0",
+  "@clerk/backend": "^2.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
