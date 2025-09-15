@@ -2,7 +2,7 @@
 
 | Task    | Mô tả chi tiết                                                                                                | Check |
 | ------- | -------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **P13** | Tạo FastAPI project trong `apps/ai-worker`, cài deps (fastapi, "uvicorn[standard]", faster-whisper, transformers, pytest) | ☐     |
+| **P13** | Tạo FastAPI project trong `apps/ai-worker`, cài deps (fastapi, "uvicorn[standard]", faster-whisper, transformers, pytest) | ☑     |
 | **P14** | Viết **lifespan.py** – load Whisper (`ASR_MODEL_NAME=small`) + PhoBERT checkpoint từ `models-and-dataset/phobert-base/`     | ☐     |
 | **P15** | Cấu hình env `.env`: `PHOBERT_CHECKPOINT_DIR`, `ASR_MODEL_NAME`, `ASR_LANGUAGE=vi`, `GATEWAY_API_KEY`                      | ☐     |
 | **P16** | Tạo **REST** `POST /asr/stream` nhận `application/octet-stream` (PCM16LE 16kHz mono) và trả `status/partial/final/detections` | ☐   |

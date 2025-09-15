@@ -17,7 +17,7 @@ def test_asr_stream_ok():
     data = b"\x00\x01\x02\x03"
     resp = client.post(
         "/asr/stream",
-        data=data,
+        content=data,
         headers={"Content-Type": "application/octet-stream", "x-session-id": "s1", "x-api-key": "dev-secret"},
     )
     assert resp.status_code == 200, resp.text
