@@ -23,19 +23,28 @@ vn-speech-guardian/
 │  │  │  ├─ main.ts
 │  │  │  ├─ app.module.ts
 │  │  │  ├─ common/
+│  │  │  │  ├─ filters/
+│  │  │  │  ├─ guards/
+│  │  │  │  ├─ interceptors/
+│  │  │  │  ├─ pipes/
+│  │  │  │  └─ prisma/
 │  │  │  ├─ modules/
 │  │  │  │  ├─ auth/
-│  │  │  │  ├─ sessions/
-│  │  │  │  ├─ transcripts/
 │  │  │  │  ├─ detections/
+│  │  │  │  ├─ health/
+│  │  │  │  ├─ metrics/
+│  │  │  │  ├─ sessions/
 │  │  │  │  ├─ stats/
 │  │  │  │  └─ ws/
-│  │  │  ├─ prisma/
-│  │  │  └─ dto/              # generated
+│  │  ├─ prisma/
+│  │  │  ├─ schema.prisma
+│  │  │  └─ migrations/
+│  │  ├─ public/
+│  │  │  └─ openapi.json
 │  │  ├─ test/
 │  │  ├─ package.json
 │  │  ├─ tsconfig.json
-│  │  ├─ jest.config.ts
+│  │  ├─ tsconfig.build.json
 │  │  └─ Dockerfile
 │  │
 │  ├─ ai-worker/                           # FastAPI AI
@@ -99,14 +108,15 @@ vn-speech-guardian/
 | **Root** | npm | 11.5.2 | workspace |
 | | turbo | 2.5.6 | cache task |
 | | Node | 22 LTS trở lên | runtime |
-| **api (NestJS Latest Version)** | `@nestjs/core` | Latest Version| framework |
-| | `@nestjs/platform-express` | Latest Version | HTTP & WS |
-| | `@nestjs/swagger` | Latest Version | OpenAPI |
-| | `nestjs-zod` | Latest Version | Zod → DTO |
-| | `prisma` | Latest Version | ORM |
-| | `@clerk/clerk-sdk-node` | Latest Version | verify JWT |
-| | `pino-pretty` | Latest Version | log JSON |
-| | `jest` | Latest Version | unit |
+| **api (NestJS)** | `@nestjs/core` | v11 | framework |
+| | `@nestjs/platform-express` | Latest | HTTP & WS |
+| | `@nestjs/swagger` | Latest | OpenAPI |
+| | `nestjs-zod` | Latest | Zod → DTO |
+| | `prisma` | v6 | ORM |
+| | `@clerk/backend` | v2.x | verify JWT |
+| | `@nestjs/throttler` | v6 | rate-limit |
+| | `pino-pretty` | Latest | log JSON |
+| | `jest` | Latest | unit |
 | **ai-worker (FastAPI)** | `fastapi` | Latest Version | async API |
 | | `uvicorn` | Latest Version | server |
 | | `faster-whisper` | Latest Version | STT |

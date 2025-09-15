@@ -7,17 +7,19 @@ applyTo: "apps/gateway-nest/**/*"
 ## 1. Vai trò & Mục tiêu
 - **Lớp Gateway** đầu tiên: **xác thực**, **rate-limit**, **ghi DB**, **push real-time** về React.
 - **Không xử lý AI** – chỉ **forward audio bytes** → FastAPI & **broadcast** kết quả.
-- **Chịu tải cao** (1-3k connection) → dùng **Fastify adapter**, **Pino logger**, **cluster PM2**.
+- **Chịu tải cao** (1-3k connection) → dùng **Express adapter** (mặc định Nest 11), **Pino logger**, có thể scale bằng **PM2 cluster** hoặc container.
 
-## 2.  Tech version
-- Node latest  LTS 
-- NestJS latest 
-- @nestjs/platform-express latest 
-- @nestjs/swagger latest 
-- nestjs-zod latest 
-- Prisma latest 
-- @clerk/clerk-sdk-node latest 
-- Pino latest 
+## 2. Tech version
+- Node 22 LTS
+- NestJS 11
+- @nestjs/platform-express latest
+- @nestjs/swagger latest
+- nestjs-zod latest
+- Prisma 6
+- @clerk/backend v2.x (server-side verification)
+- @nestjs/throttler v6 (array form config, ttl in ms)
+- Pino (nestjs-pino)
+- prom-client (metrics), helmet, cookie-parser, socket.io
 
 ## 3. Folder detail
 apps/gateway-nestjs/
@@ -25,30 +27,25 @@ apps/gateway-nestjs/
 │  ├─ main.ts
 │  ├─ app.module.ts
 │  ├─ common/
-│  │  ├─ guards/clerk.guard.ts
-│  │  ├─ interceptors/logging.interceptor.ts
-│  │  └─ pipes/zod-validation.pipe.ts
+│  │  ├─ filters/sentry-exception.filter.ts
+│  │  ├─ guards/              # auth guards, incl. Clerk guard
+│  │  ├─ interceptors/
+│  │  ├─ pipes/
+│  │  └─ prisma/
 │  ├─ modules/
 │  │  ├─ auth/
-│  │  │  ├─ auth.controller.ts
-│  │  │  ├─ auth.service.ts
-│  │  │  └─ dto/clerk-login.dto.ts
-│  │  ├─ sessions/
-│  │  │  ├─ sessions.controller.ts
-│  │  │  ├─ sessions.service.ts
-│  │  │  ├─ sessions.repository.ts
-│  │  │  ├─ dto/create-session.dto.ts
-│  │  │  └─ entities/session.entity.ts
-│  │  ├─ transcripts/
 │  │  ├─ detections/
+│  │  ├─ health/
+│  │  ├─ metrics/
+│  │  ├─ sessions/
 │  │  ├─ stats/
 │  │  └─ ws/
-│  │     └─ audio.gateway.ts
-│  ├─ prisma/
-│  │  ├─ schema.prisma
-│  │  └─ migrations/
-│  └─ dto/              # generated
-├─ test/
+│  └─ prisma/                # Prisma schema & migrations
+├─ prisma/
+│  ├─ schema.prisma
+│  └─ migrations/
+├─ test/                     # e2e/*.ts + jest-e2e.json
+├─ public/openapi.json       # generated
 └─ package.json
 
 ## 4. API contract – **REST + WebSocket**
@@ -71,6 +68,11 @@ apps/gateway-nestjs/
   - `final` – `{ text, words }`
   - `detection` – `{ label, score, snippet, startMs, endMs }`
   - `error` – `{ code, message }`
+
+Ghi chú Auth
+- Backend xác thực Bearer/cookie, verify bằng `@clerk/backend` v2 với `verifyToken`.
+- Ưu tiên `CLERK_JWT_KEY` (PEM public key). Fallback `CLERK_SECRET_KEY` khi cần.
+- Sau verify: attach `req.user` qua guard để dùng trong controller/gateway.
 
 ## 5) Logger – **structured JSON**
 - Request: `logger.info({ reqId, method, url, userId })`
@@ -144,6 +146,12 @@ Testing guidance
 - Unit tests: mock `PrismaService` and `ClerkIntegrationService` in `auth.service.spec.ts` and test orchestration.
 - Controller tests: mock `AuthService` (as shown in repo tests) and assert HTTP behavior.
 - Integration/E2E: use testcontainers Postgres to run DB migrations and test end-to-end flows.
+
+Observability & hardening
+- Metrics: `prom-client` default metrics at `/metrics` (with `@SkipThrottle`).
+- Health: `/health`, readiness `/ready` (no DB touch if `SKIP_DB=1`).
+- Sentry: optional init via `SENTRY_DSN`; global `SentryExceptionFilter` captures exceptions.
+- Throttling: `@nestjs/throttler` v6 with array config (ttl in ms). Global guard via `APP_GUARD`.
 
 When to change pattern
 - Nếu repository cần be injected across modules or you need multiple implementations, register repository as provider in module and export.
