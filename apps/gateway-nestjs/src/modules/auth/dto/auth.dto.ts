@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { RegisterBodySchema, RegisterResponseSchema, SendOTPBodySchema } from '../auth.model';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterResponseDto extends createZodDto(RegisterResponseSchema) {}
 export class RegisterBodyDto extends createZodDto(RegisterBodySchema) {}
@@ -12,3 +13,17 @@ export type SendOTPBodyType = ReturnType<typeof SendOTPBodySchema.parse>;
 // Helpers for older imports
 export type UserDto = ReturnType<typeof RegisterResponseSchema.parse>;
 export type LoginRequest = { token?: string };
+
+export class UserSwaggerDto {
+	@ApiProperty()
+	id: string;
+
+	@ApiProperty()
+	clerkId: string;
+
+	@ApiProperty()
+	email: string;
+
+	@ApiProperty()
+	role: string;
+}
