@@ -33,4 +33,30 @@ describe('AuthService', () => {
     expect(res.success).toBe(true);
     expect(res.data.accessToken).toBe('jwt');
   });
+
+  it('exchangeClerkToken throws UnauthorizedException on invalid token', async () => {
+    (mockClerk.verifyToken as jest.Mock).mockRejectedValueOnce(new Error('invalid'));
+    await expect(service.exchangeClerkToken('bad')).rejects.toThrow();
+  });
+
+  it('exchangeClerkToken throws when verifyToken returns no sub', async () => {
+    (mockClerk.verifyToken as jest.Mock).mockResolvedValueOnce({});
+    await expect(service.exchangeClerkToken('no-sub')).rejects.toThrow();
+  });
+
+  it('exchangeClerkToken throws when jwt signing fails', async () => {
+    // create a new module with JwtService that throws during signAsync
+    const moduleRef2 = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: JwtService, useValue: { signAsync: jest.fn().mockRejectedValue(new Error('jwt fail')) } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: PrismaService, useValue: {} },
+        { provide: ClerkIntegrationService, useValue: mockClerk },
+      ],
+    }).compile();
+
+    const svc = moduleRef2.get(AuthService);
+    await expect(svc.exchangeClerkToken('whatever')).rejects.toThrow();
+  });
 });
