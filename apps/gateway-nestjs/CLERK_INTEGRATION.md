@@ -1,23 +1,28 @@
-# Frontend guide — Clerk integration (recommended setup)
+# Clerk integration — Frontend + Backend (2025-09)
 
-This document is a concise, frontend-focused guide for integrating Clerk with the VN Speech Guardian frontend and the NestJS gateway.
+This guide explains how VN Speech Guardian integrates with Clerk on both the frontend (React) and the backend (NestJS Gateway) using the modern server SDK `@clerk/backend`.
 
 Goals:
-- Authenticate users with Clerk on the frontend
-- Send Clerk token to the gateway to create/sync a local user
-- Use the Clerk token for authenticated REST and WebSocket calls
+- FE: Authenticate users with Clerk and obtain a session token.
+- BE: Verify the Clerk token using `@clerk/backend`, then create/sync a local user in Postgres.
+- Reuse the Clerk session token for authenticated REST and WebSocket calls.
 
 Prerequisites
-- Frontend: React + Vite (TypeScript recommended)
-- You have a Clerk project and a publishable key for the frontend
+- Frontend: React + Vite
+- Backend: NestJS v11, Node 22 LTS
+- You have a Clerk project with Publishable and Secret keys
 
-1) Install
+Important
+- Server SDK: `@clerk/backend` (replaces deprecated `@clerk/clerk-sdk-node`).
+- Token verification on BE is stateless via the public key (`CLERK_JWT_KEY`) or via `CLERK_SECRET_KEY` fallback.
+
+## 1) Frontend: install & provider
 
 ```bash
 npm install @clerk/clerk-react
 ```
 
-2) Wrap your app with ClerkProvider
+Wrap your app with ClerkProvider
 
 ```tsx
 // src/main.tsx
@@ -37,7 +42,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )
 ```
 
-3) Auth hook (recommended)
+## 2) Frontend: Auth hook (recommended)
 
 Create a small hook to centralise token retrieval and backend sync. Key behaviors:
 - Wait until Clerk is loaded
@@ -105,7 +110,7 @@ export function useAuth() {
 }
 ```
 
-4) Small API helper
+## 3) Frontend: small API helper
 
 Don't call Clerk hooks from non-component code — pass token down or create a thin helper that receives token.
 
@@ -130,7 +135,7 @@ export class ApiClient {
 export const apiClient = new ApiClient()
 ```
 
-5) WebSocket / audio connections
+## 4) WebSocket / audio connections
 
 Use the Clerk token for authentication when opening Socket.IO connections. Send token either via `auth` payload or `extraHeaders`.
 
@@ -155,7 +160,7 @@ export function useWebSocket(namespace = '/audio', token?: string | null) {
 }
 ```
 
-6) Key backend endpoints (quick reference)
+## 5) Backend endpoints (quick reference)
 
 - POST /api/auth/clerk
   - Purpose: Verify Clerk token (Authorization header or { token }) and create/sync local user
@@ -166,7 +171,7 @@ export function useWebSocket(namespace = '/audio', token?: string | null) {
 
 - Sessions and Stats endpoints exist (see OpenAPI snapshot `apps/gateway-nestjs/public/openapi.json`).
 
-7) Environment variables (FE)
+## 6) Environment variables — Frontend
 
 Create a `.env` with:
 
@@ -175,18 +180,18 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_live_...
 VITE_API_URL=http://localhost:3000
 ```
 
-8) WebSocket notes & best practices
+## 7) WebSocket notes & best practices
 
 - Send token on connection; gateway uses guard to validate.
 - If you plan to stream audio, chunk at 200–1000ms windows to reduce latency.
 - Handle disconnects & reconnection logic; server may retry to FastAPI on transient errors.
 
-9) Troubleshooting
+## 8) Troubleshooting
 
-- 401 from `/api/auth/clerk`: verify token is a Clerk session token and `CLERK_JWT_KEY` is set on backend.
+- 401 from `/api/auth/clerk`: verify token is a valid Clerk session token and `CLERK_JWT_KEY` is set on backend (or `CLERK_SECRET_KEY` fallback is configured).
 - Generator/Swagger: If generator fails, backend may attempt DB connection; run `npm run generate:openapi` from `apps/gateway-nestjs` after `npm ci`.
 
-10) Example flow (summary)
+## 9) Example flow (summary)
 
 1. User signs in via Clerk on FE.
 2. FE hook retrieves Clerk token and POSTs to `/api/auth/clerk`.
@@ -194,3 +199,41 @@ VITE_API_URL=http://localhost:3000
 4. FE reuses the Clerk token for REST calls and WebSocket auth.
 
 If you want, I can also produce small copy-paste components for production-ready error handling and retry logic. 
+
+---
+
+## 10) Backend integration (NestJS Gateway)
+
+Server SDK: `@clerk/backend`.
+
+- Code path
+  - Verify token: `src/modules/auth/clerk-integration.service.ts` uses `verifyToken` from `@clerk/backend`.
+  - Guard: `src/common/guards/clerk.guard.ts` extracts Bearer token or `__session` cookie, calls the service, and attaches `req.user`.
+  - REST: `POST /api/auth/clerk` exchanges the Clerk token and syncs user.
+
+- Env vars (Backend)
+  - `CLERK_SECRET_KEY` — Required. Your Clerk secret key (`sk_live_...` or `sk_test_...`). Used to initialize the Clerk client for user fetch.
+  - `CLERK_JWT_KEY` — Recommended. Public key (PEM) used to verify session JWT statelessly. If present, BE uses it first. If missing, BE falls back to `secretKey` verification.
+  - `ADMIN_EMAIL_DOMAINS` — Optional. Comma-separated domains to auto-assign ADMIN role (e.g., `@company.com`).
+
+- How to obtain `CLERK_JWT_KEY` (Public Key)
+  1. Open Clerk Dashboard.
+  2. Go to “JWT Templates”. Create a template if needed (defaults are fine for FE session tokens).
+  3. Open the template and copy the Public Key (PEM) or JWKS URL.
+  4. Paste the Public Key (PEM) into your backend env as `CLERK_JWT_KEY`.
+
+  Note: For key rotation or multi-tenant setups, consider using JWKS. Our current code expects a PEM via `CLERK_JWT_KEY`. If you need JWKS, we can extend verification to use `{ issuer }` and a JWKS fetcher.
+
+- Minimal BE usage pattern (already implemented)
+  - `verifyToken(token, { jwtKey })` if `CLERK_JWT_KEY` is set.
+  - Fallback: `verifyToken(token, { secretKey })`.
+  - Fetch user profile from Clerk via `createClerkClient({ secretKey }).users.getUser(id)` to sync email/metadata into Postgres.
+
+Security notes
+- Prefer `CLERK_JWT_KEY` verification for stateless, cache-friendly checks.
+- Ensure HTTPS termination and set proper CORS for FE origin.
+- Rate-limit is provided by `@nestjs/throttler` (v6.x) and can be disabled with `DISABLE_THROTTLER=1` for CI.
+
+Versioning and packages
+- Backend server SDK: `@clerk/backend` (stable).
+- The deprecated `@clerk/clerk-sdk-node` has been removed from the project.

@@ -65,7 +65,7 @@ describe('ClerkIntegrationService', () => {
   });
 
   it('verifyToken rethrows clerk errors', async () => {
-    (service as any).clerkClient.verifyToken = jest.fn().mockRejectedValue(new Error('invalid'));
+    (service as any).verifyFn = jest.fn().mockRejectedValue(new Error('invalid'));
     await expect(service.verifyToken('badtoken')).rejects.toThrow('invalid');
   });
 

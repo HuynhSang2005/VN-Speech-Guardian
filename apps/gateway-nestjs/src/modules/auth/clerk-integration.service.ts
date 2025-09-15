@@ -9,21 +9,29 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { createClerkClient, User as ClerkUser } from '@clerk/clerk-sdk-node';
+import { createClerkClient, verifyToken as verifyClerkToken } from '@clerk/backend';
+// Clerk user type can vary; keep as any to avoid tight coupling
+type ClerkUser = any;
 import type { UserDto } from './dto/auth.dto';
 
 @Injectable()
 export class ClerkIntegrationService {
   private readonly logger = new Logger(ClerkIntegrationService.name);
-  private clerkClient;
+  private clerkClient: ReturnType<typeof createClerkClient>;
+  // swappable verifier for tests
+  private verifyFn: (token: string) => Promise<any>;
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.clerkClient = createClerkClient({
-      secretKey: this.configService.get('CLERK_SECRET_KEY'),
-    });
+    const secretKey = this.configService.get<string>('CLERK_SECRET_KEY')!;
+    const jwtKey = this.configService.get<string>('CLERK_JWT_KEY');
+    this.clerkClient = createClerkClient({ secretKey });
+    this.verifyFn = (token: string) =>
+      jwtKey
+        ? verifyClerkToken(token, { jwtKey })
+        : verifyClerkToken(token, { secretKey });
   }
 
   /**
@@ -31,9 +39,7 @@ export class ClerkIntegrationService {
    */
   async verifyToken(token: string): Promise<any> {
     try {
-      return await this.clerkClient.verifyToken(token, {
-        jwtKey: this.configService.get('CLERK_JWT_KEY'),
-      });
+      return await this.verifyFn(token);
     } catch (error) {
       this.logger.error('Clerk token verification failed:', error.message);
       throw error;

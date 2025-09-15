@@ -57,6 +57,15 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Environment variables (Backend)
+
+Add these to your `.env` (or CI secrets) when running the gateway:
+
+- `CLERK_SECRET_KEY` — your Clerk secret key (e.g., `sk_test_...`). Required for the server SDK client.
+- `CLERK_JWT_KEY` — Clerk public key (PEM) for stateless JWT verification: `-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----`. Recommended.
+
+See `CLERK_INTEGRATION.md` in this folder for end-to-end setup details.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
