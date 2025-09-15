@@ -45,10 +45,13 @@ describe('SessionsController', () => {
   });
 
   it('transcripts returns list', async () => {
+    // service returns array of transcripts; controller wraps into { items, total }
     (mockService.listTranscripts as any) = jest.fn().mockResolvedValue([{ id: 't1', text: 'hello' }]);
     const res = await controller.transcripts('s1');
     expect(res).toHaveProperty('success', true);
-    expect(res.data[0]).toHaveProperty('id', 't1');
+    // controller returns data.items as the array
+    expect(res.data).toHaveProperty('items');
+    expect(res.data.items[0]).toHaveProperty('id', 't1');
   });
 
   it('remove propagates errors', async () => {
