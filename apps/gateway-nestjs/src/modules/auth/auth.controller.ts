@@ -21,7 +21,7 @@ import {
 import { ClerkIntegrationService } from './clerk-integration.service';
 import { AuthService } from './auth.service';
 import { ClerkGuard } from '../../common/guards/clerk.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import type { LoginRequest, UserDto } from './dto/auth.dto';
 
 type AuthResponse = { success: boolean; data: { accessToken?: string; user: UserDto } };
@@ -66,6 +66,10 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired Clerk token' })
+  @ApiOperation({ summary: 'Verify Clerk token and sync user' })
+  @ApiBody({ schema: { properties: { token: { type: 'string' } } } })
+  @ApiResponse({ status: 200, description: 'Verified and synced user' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
   async verifyClerkToken(
     @Body() body: Partial<LoginRequest>,
     @Request() req: any,
