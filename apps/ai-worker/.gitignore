@@ -1,0 +1,33 @@
+# Python caches and artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.coverage.*
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# Build/Dist
+build/
+dist/
+
+# OS/Editor
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs
+*.log
