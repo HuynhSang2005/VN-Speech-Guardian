@@ -12,11 +12,18 @@ class Cfg:
     ASR_LANG = os.getenv("ASR_LANGUAGE", "vi")
     ASR_BEAM = int(os.getenv("ASR_BEAM_SIZE", "5"))
     ASR_SAMPLE_RATE = int(os.getenv("ASR_SAMPLE_RATE", "16000"))
+    # Rate limit giữa các chunk theo session (ms). 0 = tắt
+    ASR_MIN_INTERVAL_MS = int(os.getenv("ASR_MIN_INTERVAL_MS", "0"))
     PHOBERT_DIR = os.getenv("PHOBERT_CHECKPOINT_DIR", "./models-and-dataset/phobert-base")
     LABEL_MAP = json.loads(os.getenv("MOD_LABELS_JSON", '{"safe":0,"warn":1,"block":2}'))
     TEXT_MAX_LEN = int(os.getenv("TEXT_MAX_LEN", "256"))
     # Gate heavy model loading to keep tests fast
     AI_LOAD_MODELS = os.getenv("AI_LOAD_MODELS", "false").lower() in ("1", "true", "yes")
+    # Optional ONNXRuntime for PhoBERT
+    PHOBERT_ONNX_DIR = os.getenv("PHOBERT_ONNX_DIR", "")
+    USE_ONNXRUNTIME = os.getenv("USE_ONNXRUNTIME", "false").lower() in ("1", "true", "yes")
+    # Chạy moderation ngay trong ASR (tích hợp detections)
+    ASR_RUN_MOD = os.getenv("ASR_RUN_MOD", "false").lower() in ("1", "true", "yes")
 
 
 cfg = Cfg()

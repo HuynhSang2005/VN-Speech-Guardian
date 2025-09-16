@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .core.config import cfg
+from pathlib import Path
 
 
 def _load_models():  # pragma: no cover - nặng, không chạy trong unit test
@@ -17,13 +18,22 @@ def _load_models():  # pragma: no cover - nặng, không chạy trong unit test
     except Exception:
         whisper_model = None
 
+    # PhoBERT: Prefer ONNXRuntime if enabled and model exists, else fall back to HF PyTorch
     try:
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification  # type: ignore
+        if cfg.USE_ONNXRUNTIME and cfg.PHOBERT_ONNX_DIR and Path(cfg.PHOBERT_ONNX_DIR).exists():
+            import onnxruntime as ort  # type: ignore
+            from transformers import AutoTokenizer  # type: ignore
 
-        tokenizer = AutoTokenizer.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
-        model = AutoModelForSequenceClassification.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
-        model.eval()
-        phobert = {"tokenizer": tokenizer, "model": model}
+            tokenizer = AutoTokenizer.from_pretrained(cfg.PHOBERT_ONNX_DIR, local_files_only=True)
+            session = ort.InferenceSession(str(Path(cfg.PHOBERT_ONNX_DIR) / "model.onnx"), providers=["CPUExecutionProvider"])  # noqa: E501
+            phobert = {"tokenizer": tokenizer, "onnx_session": session}
+        else:
+            from transformers import AutoTokenizer, AutoModelForSequenceClassification  # type: ignore
+
+            tokenizer = AutoTokenizer.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
+            model = AutoModelForSequenceClassification.from_pretrained(cfg.PHOBERT_DIR, local_files_only=True)
+            model.eval()
+            phobert = {"tokenizer": tokenizer, "model": model}
     except Exception:
         phobert = None
     return whisper_model, phobert
