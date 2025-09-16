@@ -1,11 +1,6 @@
 name: CI - Unit & E2E
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'apps/gateway-nestjs/**'
-      - '.github/**'
   pull_request:
     branches: [ main ]
     paths:

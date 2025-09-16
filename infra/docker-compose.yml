@@ -12,5 +12,36 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  ai-worker:
+    build:
+      context: ../
+      dockerfile: apps/ai-worker/Dockerfile
+    container_name: vsg-ai-worker
+    environment:
+      # Enable model loading and ORT path
+      AI_LOAD_MODELS: "true"
+      USE_ONNXRUNTIME: "true"
+      GATEWAY_API_KEY: dev-secret
+      # Point to ONNX dir (exported) and HF dir for fallback
+      PHOBERT_ONNX_DIR: /app/app/models/bert-finetuned-onnx
+      PHOBERT_CHECKPOINT_DIR: /app/app/models/phobert-hsd
+      # Whisper defaults
+      ASR_MODEL_NAME: small
+      ASR_DEVICE: cpu
+      ASR_COMPUTE_TYPE: int8
+      ASR_LANGUAGE: vi
+      ASR_BEAM_SIZE: "5"
+      TEXT_MAX_LEN: "256"
+    ports:
+      - "8001:8001"
+    volumes:
+      # Bind model directories from repo into container for quick iteration
+      - ../apps/ai-worker/app/models:/app/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
