@@ -1,0 +1,5 @@
+# Optional extras for ONNX/ORT export & inference
+optimum[onnxruntime]
+onnx
+onnxruntime
+onnxconverter-common
