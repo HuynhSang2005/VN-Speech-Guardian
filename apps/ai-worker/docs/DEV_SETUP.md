@@ -85,3 +85,25 @@ Nếu mọi thứ OK, script sẽ in inputs và outputs (label + score).
 
 Có một script để thiết lập nhanh trên Linux/macOS: `scripts/setup_ai_worker.sh`. Trên Windows bạn đã có `scripts/setup_ai_worker.ps1`.
 
+9) Gateway → AI Worker auth flow (example)
+
+AI Worker bảo vệ endpoint bằng header `x-api-key`. Gateway chịu trách nhiệm đặt header này khi gọi AI Worker. Thiết lập ví dụ:
+
+Environment (Gateway):
+
+```powershell
+setx GATEWAY_API_KEY "<your-secret>"
+setx AI_SERVICE_BASE_URL "http://ai-worker:8001"
+```
+
+Gateway (Node.js / NestJS) example khi gọi moderation:
+
+```ts
+// in some GatewayService
+const key = process.env.GATEWAY_API_KEY;
+const aiBase = process.env.AI_SERVICE_BASE_URL;
+await axios.post(`${aiBase}/moderation`, { inputs }, { headers: { 'x-api-key': key }});
+```
+
+Nếu muốn forward thông tin user cho mục đích logging/audit, Gateway có thể thêm `x-user-id` hoặc `Authorization: Bearer <user-jwt>` headers. AI Worker chỉ tin các header này nếu request được đến từ Gateway (trusted). 
+

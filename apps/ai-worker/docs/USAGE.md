@@ -1,4 +1,4 @@
-# Hướng dẫn sử dụng AI Worker (ngắn gọn)
+# Hướng dẫn sử dụng AI Worker
 
 1) Biến môi trường quan trọng
 - `GATEWAY_API_KEY` - API key cho gateway (mặc định `dev-secret` trong dev)
