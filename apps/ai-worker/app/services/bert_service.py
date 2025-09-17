@@ -10,7 +10,11 @@ def _heuristic(batch: list[str]):
     res = []
     for s in batch:
         sl = s.lower()
-        if any(k in sl for k in ["đồ ngu", "chửi", "fuck", "dm", "cc"]):
+        if any(k in sl for k in [
+            "đồ ngu", "đồ khốn", "đồ mất dạy", "mất dạy", "khốn nạn",
+            "chửi", "chửi bậy", "cút", "đm", "dm", "dmm", "cc",
+            "fuck", "wtf"
+        ]):
             res.append({"label": "block", "score": 0.95})
         elif any(k in sl for k in ["cảnh báo", "warning"]):
             res.append({"label": "warn", "score": 0.8})
