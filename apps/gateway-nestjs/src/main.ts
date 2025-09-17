@@ -14,6 +14,7 @@ import helmet from 'helmet';
 import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 import path from 'path';
+import { validateApiKeyMiddleware } from './common/middleware/validate-api-key.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -101,6 +102,9 @@ async function bootstrap() {
     customSiteTitle: 'VN Speech Guardian API Docs',
   });
   // also serve the raw JSON at a stable endpoint
+  // Apply example API key validation middleware to all /api/* HTTP routes.
+  // Note: WebSocket namespace (/audio) is unaffected by this middleware.
+  app.use('/api', validateApiKeyMiddleware);
   app.use('/api/docs-json', (req, res) => res.json(document));
 
   const port = process.env.PORT || 3001;
