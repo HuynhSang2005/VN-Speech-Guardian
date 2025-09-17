@@ -172,6 +172,22 @@ Lưu ý AI worker
 - Whisper dùng `faster-whisper` cài qua pip; mặc định `ASR_MODEL_NAME=small`, `ASR_LANGUAGE=vi`.
 - Endpoint ưu tiên binary-efficient: `POST /asr/stream` nhận `application/octet-stream` theo Forward protocol ở mục 9.
 
+### Cập nhật quan trọng (ONNX / thresholds / vận hành)
+
+- Fast inference cho PhoBERT trên CPU ưu tiên ONNXRuntime khi có `app/models/bert-finetuned-onnx/model.onnx`.
+- Biến môi trường để cấu hình mapping & runtime:
+	- `PHOBERT_CHECKPOINT_DIR` (torch checkpoint hoặc hf folder)
+	- `PHOBERT_ONNX_DIR` (nơi lưu `model.onnx` nếu xuất ONNX)
+	- `USE_ONNXRUNTIME` (true/false) — nếu true thì ưu tiên ONNXRuntime
+	- `PHOBERT_BLOCK_THRESHOLD`, `PHOBERT_WARN_THRESHOLD` — thresholds (0..1) để map softmax → safe/warn/block
+	- `GATEWAY_API_KEY` — secret giữa Gateway và AI Worker (x-api-key)
+
+Ví dụ chạy export & smoke-test đã được chuẩn hóa trong `apps/ai-worker/tools/`:
+- `tools/export_onnx_phobert.py` — exporter từ checkpoint HF → ONNX
+- `tools/smoke_ort_infer.py` — kiểm tra inference ONNX nhanh
+
+Lưu ý Git LFS: mô hình lớn (nếu có) phải đưa vào LFS hoặc host bên ngoài; repo không nên chứa checkpoint >100MB.
+
 ---
 
 ## 4) Hiệu suất target – **real-time**
@@ -263,6 +279,10 @@ async def asr_stream(request: Request, x_session_id: str | None = Header(None)):
 		# run VAD → ASR → moderation → return json
 		return { 'status':'ok', 'final': {'text': '...'}, 'detections': [] }
 ```
+
+Ghi chú bổ sung:
+- Gateway chịu trách nhiệm gửi header `x-api-key` (value từ `GATEWAY_API_KEY`) cho mọi request giữa dịch vụ.
+- Khi cần auditing, Gateway có thể forward `x-user-id` hoặc `x-request-id` (AI Worker chỉ log nhưng không xử lý auth từ các header này).
 
 ---
 

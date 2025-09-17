@@ -1,14 +1,20 @@
-# ai-service.instructions.md 
 
-**Mục tiêu:** Chuẩn hóa cách **huấn luyện offline** PhoBERT trên `dataset.csv` (hoặc ViHSD), sau đó **deploy suy luận** trong FastAPI. Whisper dùng thẳng qua `faster-whisper`, không cần huấn luyện.
+# ai-service.instructions.md
+
+**Mục tiêu:** Hướng dẫn chi tiết cho dev/DevOps về cách chuẩn bị dữ liệu, fine‑tune PhoBERT offline, export sang ONNX (tùy chọn) và cách deploy / tích hợp suy luận trong `apps/ai-worker` (FastAPI).
+
+Các điểm cập nhật quan trọng:
+- Hỗ trợ hai đường suy luận: PyTorch (checkpoint) hoặc ONNXRuntime (`model.onnx`). ONNX ưu tiên cho CPU production.
+- Có sẵn script export (tools/export_onnx_phobert.py) và smoke-test (tools/smoke_ort_infer.py).
 
 ---
 
-## 1) Chuẩn dữ liệu `dataset.csv` (hoặc ViHSD)
+## 1) Chuẩn dữ liệu
 
-* Cột bắt buộc: `text`, `label`
-* Nhãn dùng bộ ánh xạ: `{"safe":0,"warn":1,"block":2}`
-* Ví dụ (CSV 2 cột):
+- Bắt buộc các cột: `text`, `label`
+- Nhãn dùng map: `{"safe":0,"warn":1,"block":2}`
+
+Ví dụ CSV (2 cột):
 
 ```csv
 text,label
@@ -19,116 +25,94 @@ text,label
 
 ---
 
-## 2) Huấn luyện PhoBERT (offline, 1 lệnh)
-Ưu tiên dùng checkpoint có sẵn trong repo nếu bạn chỉ muốn chạy suy luận nhanh:
+## 2) Fine‑tune PhoBERT (offline)
 
-- Checkpoint PhoBERT đã có: `models-and-dataset/phobert-base/`
-- Dataset ViHSD mẫu: `models-and-dataset/ViHSD/ViHSD.csv`
-
-Nếu cần fine-tune, dùng script sau (ví dụ đơn giản với HuggingFace Trainer):
-
-Tạo `train_phobert.py` ở thư mục tạm bất kỳ:
+Bạn có thể dùng checkpoint có sẵn để chạy inference nhanh. Nếu cần cải thiện chất lượng, fine‑tune offline bằng HuggingFace Trainer. Mã ví dụ (ngắn gọn):
 
 ```python
-import os, json, numpy as np
-from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
-
-DATASET="./models-and-dataset/ViHSD/ViHSD.csv"  # hoặc đường dẫn dataset.csv tuỳ bạn
-OUTDIR="./apps/ai-worker/app/models/bert-finetuned"  # nơi lưu checkpoint fine-tune
-PRETRAINED="vinai/phobert-base"
-TEXT_MAX_LEN=256
-LABEL_MAP={"safe":0,"warn":1,"block":2}
-
-def metrics(p):
-  l, y = p
-  y = np.argmax(l, axis=-1)
-  return {
-    "accuracy": float((y==p.label_ids).mean()),
-    "f1": float(f1_score(p.label_ids, y, average="macro", zero_division=0)),
-    "precision": float(precision_score(p.label_ids, y, average="macro", zero_division=0)),
-    "recall": float(recall_score(p.label_ids, y, average="macro", zero_division=0)),
-  }
-
-def main():
-  raw = load_dataset("csv", data_files={"train": DATASET})["train"].train_test_split(test_size=0.1, seed=42)
-  tok = AutoTokenizer.from_pretrained(PRETRAINED, use_fast=True)
-
-  def prep(e):
-    t = tok(e["text"], max_length=TEXT_MAX_LEN, truncation=True, padding="max_length")
-    t["labels"] = [LABEL_MAP[x] for x in e["label"]]
-    return t
-
-  train = raw["train"].map(prep, batched=True)
-  valid = raw["test"].map(prep, batched=True)
-
-  mdl = AutoModelForSequenceClassification.from_pretrained(PRETRAINED, num_labels=3, id2label={v:k for k,v in LABEL_MAP.items()}, label2id=LABEL_MAP)
-
-  args = TrainingArguments(
-    output_dir=OUTDIR, num_train_epochs=3, per_device_train_batch_size=16, per_device_eval_batch_size=16,
-    learning_rate=2e-5, evaluation_strategy="epoch", save_strategy="epoch", load_best_model_at_end=True,
-    metric_for_best_model="f1", logging_steps=50
-  )
-  tr = Trainer(model=mdl, args=args, train_dataset=train, eval_dataset=valid, tokenizer=tok, compute_metrics=metrics)
-  tr.train()
-  tr.save_model(OUTDIR); tok.save_pretrained(OUTDIR)
-
-if __name__=="__main__": main()
+# ... giống phần trước, dùng Trainer để fine-tune, save vào OUTDIR
 ```
 
-Chạy:
+Chạy (env Unix/Windows tương tự):
 
 ```bash
 pip install -U transformers datasets scikit-learn accelerate evaluate
 python train_phobert.py
-# Kết quả: OUTDIR gồm config.json, tokenizer.*, pytorch_model.bin...
+# OUTDIR sẽ chứa config.json, tokenizer.*, pytorch_model.bin...
 ```
 
 ---
 
-## 3) Sử dụng checkpoint trong service
+## 3) Export ONNX (tùy chọn, khuyến nghị cho CPU)
 
-Tại runtime, FastAPI AI sẽ đọc từ biến môi trường:
+- Script `apps/ai-worker/tools/export_onnx_phobert.py` đã được chuẩn hóa để xuất model sang ONNX (torch checkpoint → model.onnx).
+- Sau khi export, đặt ONNX vào `apps/ai-worker/app/models/bert-finetuned-onnx/` (chứa `model.onnx` và tokenizer files).
+- Kiểm tra bằng `apps/ai-worker/tools/smoke_ort_infer.py`.
 
-```
-PHOBERT_CHECKPOINT_DIR=./models-and-dataset/phobert-base        # dùng checkpoint base có sẵn
-# hoặc trỏ tới checkpoint fine-tuned nếu bạn đã train
-# PHOBERT_CHECKPOINT_DIR=./apps/ai-worker/app/models/bert-finetuned
-```
-
-Khởi động FastAPI, gọi `POST /moderation`. Nếu thiếu checkpoint sẽ trả 503.
+Lưu ý: ONNX export có thể yêu cầu `optimum` hoặc `onnxruntime-tools` tùy phiên bản; check script để biết các tuỳ chọn.
 
 ---
 
-## 4) Whisper trong MVP
+## 4) Cấu hình runtime (env vars)
 
-* Dùng `faster-whisper` với `ASR_MODEL_NAME=small` trên CPU (cài qua `pip install faster-whisper`).
-* Mặc định `ASR_LANGUAGE=vi` để cố định tiếng Việt.
-* Thử với file `.wav` 16 kHz mono để ổn định.
+Thêm vào `.env` / config runtime:
+
+```
+APP_HOST=0.0.0.0
+APP_PORT=8001
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+GATEWAY_API_KEY=dev-secret
+
+# Whisper
+ASR_MODEL_NAME=small
+ASR_DEVICE=cpu
+ASR_LANGUAGE=vi
+ASR_BEAM_SIZE=5
+
+# PhoBERT
+PHOBERT_CHECKPOINT_DIR=./models-and-dataset/phobert-base
+PHOBERT_ONNX_DIR=./app/models/bert-finetuned-onnx
+USE_ONNXRUNTIME=true
+PHOBERT_BLOCK_THRESHOLD=0.85
+PHOBERT_WARN_THRESHOLD=0.6
+MOD_LABELS_JSON={"safe":0,"warn":1,"block":2}
+TEXT_MAX_LEN=256
+```
+
+- `USE_ONNXRUNTIME`: nếu `true` và `PHOBERT_ONNX_DIR/model.onnx` tồn tại thì service dùng ONNXRuntime.
+- `PHOBERT_BLOCK_THRESHOLD`, `PHOBERT_WARN_THRESHOLD`: thresholds để mapping probability → label; dễ tune qua env.
 
 ---
 
-## 5) Kết nối với NestJS Gateway
+## 5) Tích hợp với Gateway
 
-* Thêm biến ở Gateway:
+- Gateway phải set header `x-api-key: <GATEWAY_API_KEY>` cho mọi request tới AI Worker.
+- Gateway có thể forward `x-user-id` / `x-request-id` cho mục đích logging/audit; AI Worker không dùng những header này để xác thực.
 
-```
-AI_SERVICE_BASE_URL=http://localhost:8001
-AI_SERVICE_API_KEY=dev-secret
-```
-
-* Gọi:
+Ví dụ gọi moderation từ Gateway (Node.js / axios):
 
 ```ts
-await axios.post(`${AI}/asr`, form, { headers: { "x-api-key": KEY, ...form.getHeaders() }})
-await axios.post(`${AI}/moderation`, { inputs }, { headers: { "x-api-key": KEY }})
+const AI_BASE = process.env.AI_SERVICE_BASE_URL;
+const KEY = process.env.GATEWAY_API_KEY;
+await axios.post(`${AI_BASE}/moderation`, { inputs }, { headers: { 'x-api-key': KEY }});
 ```
 
-* Mapping lỗi:
+---
 
-  * 401 → key sai.
-  * 400 → định dạng file audio không hợp lệ.
-  * 503 → PhoBERT chưa sẵn sàng.
+## 6) Tools & scripts
+
+- `apps/ai-worker/tools/export_onnx_phobert.py` — export checkpoint → ONNX
+- `apps/ai-worker/tools/smoke_ort_infer.py` — quick smoke test ONNXRuntime
+- `scripts/setup_ai_worker.ps1` & `scripts/setup_ai_worker.sh` — thiết lập môi trường dev (venv + pip install)
 
 ---
+
+## 7) Vận hành và Troubleshooting
+
+- Nếu model chưa sẵn sàng, `/readyz` hoặc `/healthz` sẽ báo `phobert_loaded=false` và `/moderation` trả 503.
+- Nếu ONNX export lỗi, fallback sang PyTorch nếu `PHOBERT_CHECKPOINT_DIR` tồn tại.
+- Đặt models >100MB vào Git LFS hoặc host bên ngoài.
+
+---
+
+Ghi chú: giữ tài liệu này tiếng Việt để dev team VN dễ đọc; nếu cần phiên bản tiếng Anh, tôi có thể xuất sang `docs/EN/`.
