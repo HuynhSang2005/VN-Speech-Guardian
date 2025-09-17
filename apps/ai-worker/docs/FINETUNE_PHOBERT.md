@@ -1,4 +1,88 @@
-# Fine-tune PhoBERT (phobert-hsd) and repo housekeeping
+```markdown
+# Hướng dẫn fine-tune PhoBERT (phobert-hsd) và export ONNX
+
+Tài liệu này cung cấp các bước rõ ràng để bạn fine-tune PhoBERT, export sang ONNX và tích hợp vào `ai-worker`.
+
+## 1) Lý do và quản lý model trong repo
+
+- Các checkpoint fine-tuned thường rất lớn (hàng trăm MB → GB). Không khuyến nghị commit trực tiếp vào git. Dùng Git LFS, model registry, hoặc lưu trên S3/Artifactory.
+- Repo giữ `phobert-hsd` (ready-to-use) để dev nhanh; nếu bạn có checkpoint riêng, đặt nó vào `app/models/<name>` và trỏ `PHOBERT_CHECKPOINT_DIR`.
+
+## 2) Chuẩn bị môi trường
+
+PowerShell:
+
+```powershell
+cd apps/ai-worker
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Bash:
+
+```bash
+cd apps/ai-worker
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Nếu cần export ONNX: `pip install -r requirements-onnx.txt` hoặc `python -m pip install -U "optimum[onnxruntime]" onnxruntime`
+
+## 3) Fine-tune nhanh (ví dụ)
+
+```bash
+python tools/train_phobert.py \
+  --dataset app/datasets/viHSD/ViHSD.csv \
+  --outdir app/models/phobert-hsd \
+  --epochs 3 --batch-size 8
+```
+
+Sau khi train xong, kiểm tra folder `app/models/phobert-hsd`.
+
+## 4) Export ONNX (khuyến nghị cho CPU inference)
+
+Ví dụ export từ `phobert-hsd` (hoặc từ checkpoint khác):
+
+```bash
+python tools/export_onnx_phobert.py --src app/models/phobert-hsd --dst app/models/bert-finetuned-onnx --opset 17
+```
+
+Kết quả: thư mục `app/models/bert-finetuned-onnx` có `model.onnx` và các file tokenizer/config.
+
+Lưu ý:
+- Nếu export lỗi, kiểm tra phiên bản `optimum`, `onnx`, `transformers` và `torch` tương thích.
+- Warnings từ exporter (tracer/onnx warnings) thường không ảnh hưởng nếu script báo `Exported ONNX model to ...`.
+
+## 5) Chạy service với ONNX
+
+Thiết lập env và khởi động:
+
+```bash
+export PHOBERT_ONNX_DIR=app/models/bert-finetuned-onnx
+export USE_ONNXRUNTIME=true
+export AI_LOAD_MODELS=true
+export GATEWAY_API_KEY=dev-secret
+python -m uvicorn app.main:create_app --host 0.0.0.0 --port 8001
+```
+
+## 6) Nếu người khác clone repo
+
+- Không bắt buộc phải fine-tune ngay. Service có fallback heuristic để dev nhanh.
+- Để có kết quả production-quality, họ cần download checkpoint `phobert-hsd` hoặc fine-tune rồi export ONNX như hướng dẫn.
+
+## 7) Các lệnh nhanh
+
+- Train: `python tools/train_phobert.py --dataset app/datasets/viHSD/ViHSD.csv --outdir app/models/phobert-hsd --epochs 3`
+- Export ONNX: `python tools/export_onnx_phobert.py --src app/models/phobert-hsd --dst app/models/bert-finetuned-onnx`
+- Smoke test ORT: `python tools/smoke_ort_infer.py`
+
+---
+
+Nếu muốn, tôi có thể thêm script tự động tải `phobert-hsd` từ artifact storage (nếu bạn cung cấp URL) hoặc thiết lập CI để validate ONNX artifacts.
+
+```# Fine-tune PhoBERT (phobert-hsd) and repo housekeeping
 
 This document explains:
 

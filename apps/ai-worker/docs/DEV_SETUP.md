@@ -48,3 +48,40 @@ cd apps/ai-worker
 5) Tips nhanh
 - Nếu model ONNX không có, service sẽ fallback heuristic.
 - Đặt env `AI_LOAD_MODELS=true` để service tự load model khi khởi động.
+
+6) Export ONNX (nếu cần)
+
+Nếu bạn đã có checkpoint fine-tuned (ví dụ `app/models/bert-finetuned`) hoặc muốn export trực tiếp từ `phobert-hsd` (repo có sẵn), dùng script export:
+
+PowerShell:
+
+```powershell
+cd apps/ai-worker
+.\.venv\Scripts\Activate.ps1
+python tools\export_onnx_phobert.py --src app\models\phobert-hsd --dst app\models\bert-finetuned-onnx
+```
+
+Bash:
+
+```bash
+cd apps/ai-worker
+source .venv/bin/activate
+python tools/export_onnx_phobert.py --src app/models/phobert-hsd --dst app/models/bert-finetuned-onnx
+```
+
+Sau khi export thành công, `app/models/bert-finetuned-onnx/model.onnx` sẽ tồn tại cùng tokenizer/config.
+
+7) Kiểm tra ONNXRuntime inference (smoke test)
+
+Trong venv, chạy:
+
+```powershell
+python tools\smoke_ort_infer.py
+```
+
+Nếu mọi thứ OK, script sẽ in inputs và outputs (label + score).
+
+8) Script helper
+
+Có một script để thiết lập nhanh trên Linux/macOS: `scripts/setup_ai_worker.sh`. Trên Windows bạn đã có `scripts/setup_ai_worker.ps1`.
+

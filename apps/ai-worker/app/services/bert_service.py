@@ -96,9 +96,51 @@ def predict(batch: list[str], phobert: Any | None = None):
             logits = mdl(**enc).logits
             probs = F.softmax(logits, dim=-1).cpu().tolist()
         out = []
-        for p in probs:
-            idx = int(max(range(len(p)), key=lambda i: p[i]))
-            out.append({"label": id2label_map.get(idx, str(idx)), "score": float(p[idx])})
+        # Prepare keyword override lists (kept local to prediction for easy tuning)
+        hard_block = [
+            "đồ ngu", "đồ khốn", "đồ mất dạy", "mất dạy", "khốn nạn",
+            "đm", "dm", "dmm", "cc", "fuck", "f**k", "f***", "wtf"
+        ]
+        warn_keys = ["cảnh báo", "warning"]
+
+        for i, p in enumerate(probs):
+            # Map probs to label name via id2label_map
+            label_probs: dict[str, float] = {}
+            for idx, val in enumerate(p):
+                lbl = id2label_map.get(idx, str(idx))
+                label_probs[lbl] = float(val)
+
+            # Raw model argmax
+            idx = int(max(range(len(p)), key=lambda ii: p[ii]))
+            model_label = id2label_map.get(idx, str(idx))
+            model_score = float(p[idx])
+
+            text = batch[i].lower()
+            # 1) Keyword overrides (heuristic strong rules)
+            if any(k in text for k in hard_block):
+                out.append({"label": "block", "score": max(model_score, 0.9)})
+                continue
+            if any(k in text for k in warn_keys):
+                out.append({"label": "warn", "score": max(label_probs.get("warn", 0.0), 0.6)})
+                continue
+
+            # 2) Threshold-based mapping using model probabilities per label
+            # Read thresholds from config (env tunable)
+            block_th = float(cfg.PHOBERT_BLOCK_THRESHOLD)
+            warn_th = float(cfg.PHOBERT_WARN_THRESHOLD)
+
+            blk_prob = label_probs.get("block", 0.0)
+            wrn_prob = label_probs.get("warn", 0.0)
+            safe_prob = label_probs.get("safe", 0.0)
+
+            if blk_prob >= block_th:
+                out.append({"label": "block", "score": float(blk_prob)})
+            elif wrn_prob >= warn_th:
+                out.append({"label": "warn", "score": float(wrn_prob)})
+            else:
+                # fallback to model argmax if thresholds didn't pick
+                out.append({"label": model_label, "score": model_score})
+
         return out
     except Exception:  # pragma: no cover
         return _heuristic(batch)

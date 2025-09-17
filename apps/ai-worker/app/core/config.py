@@ -24,6 +24,9 @@ class Cfg:
     USE_ONNXRUNTIME = os.getenv("USE_ONNXRUNTIME", "false").lower() in ("1", "true", "yes")
     # Chạy moderation ngay trong ASR (tích hợp detections)
     ASR_RUN_MOD = os.getenv("ASR_RUN_MOD", "false").lower() in ("1", "true", "yes")
+    # Thresholds for moderation mapping (tunable via env)
+    PHOBERT_BLOCK_THRESHOLD = float(os.getenv("PHOBERT_BLOCK_THRESHOLD", "0.6"))
+    PHOBERT_WARN_THRESHOLD = float(os.getenv("PHOBERT_WARN_THRESHOLD", "0.5"))
 
 
 cfg = Cfg()
