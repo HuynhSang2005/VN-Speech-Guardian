@@ -20,11 +20,14 @@ export class AiWorkerService {
 
     try {
       // Send binary body to avoid base64 overhead; provide session id in header
+      const apiKey = process.env.GATEWAY_API_KEY || this.config.get('GATEWAY_API_KEY') || '';
       const res = await (globalThis as any).fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
           'x-session-id': sessionId || '',
+          // attach shared secret so AI Worker can verify the request origin
+          ...(apiKey ? { 'x-api-key': apiKey } : {}),
         },
         body: audio,
       });
