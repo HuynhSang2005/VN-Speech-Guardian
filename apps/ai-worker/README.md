@@ -1,3 +1,22 @@
+# AI Worker - VN Speech Guardian
+
+Ứng dụng FastAPI nhỏ chuyên phục vụ các tác vụ AI cho dự án VN-Speech-Guardian:
+- ASR (faster-whisper) streaming
+- Moderation (PhoBERT fine-tuned / ONNX runtime)
+
+Mục tiêu:
+- Dễ chạy local cho dev mới
+- Hỗ trợ inference CPU nhanh (ONNX) và fallback heuristic
+- Dễ mở rộng và deploy bằng Docker
+
+Thư mục quan trọng:
+- `app/` - mã nguồn FastAPI
+- `app/models/` - nơi chứa tokenizer / model checkpoints (chỉ giữ `phobert-hsd` trong repo)
+- `app/datasets/` - dataset mẫu (ViHSD)
+- `tools/` - scripts: train, export_onnx, benchmarks, e2e tests
+- `docs/` - tài liệu dev & vận hành
+
+Xem thêm hướng dẫn chi tiết trong `apps/ai-worker/docs/`.
 # AI Worker (FastAPI)
 
 Endpoints:
