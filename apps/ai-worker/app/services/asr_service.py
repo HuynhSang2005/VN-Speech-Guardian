@@ -1,5 +1,6 @@
 from typing import Any
 from ..core.config import cfg
+from ..utils import validate_pcm16le, pcm16le_bytes_to_float32
 
 
 def _stub_transcribe(data: bytes) -> dict:
@@ -20,11 +21,11 @@ def transcribe_bytes(data: bytes, model: Any | None = None) -> dict:
 
     try:  # pragma: no cover - phụ thuộc vào model thực tế, khó tái lập trong CI
         # faster-whisper API nhận input là path/array/samples; ở đây chỉ demo fallback.
-        # Để đúng chuẩn: cần convert PCM16LE bytes -> numpy float32 16kHz mono.
-        import numpy as np  # type: ignore
-
-        # Chuyển bytes PCM16LE -> numpy int16 rồi -> float32 [-1,1]
-        audio = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
+        # Dùng helper chung để chuyển PCM16LE bytes -> numpy float32
+        if not validate_pcm16le(data):
+            # Let higher-level validate; but double-check here too
+            return _stub_transcribe(data)
+        audio, _ = pcm16le_bytes_to_float32(data)
 
         segments, info = model.transcribe(
             audio,
