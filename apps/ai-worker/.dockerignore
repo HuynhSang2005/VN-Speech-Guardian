@@ -1,0 +1,17 @@
+# Exclude heavy model artifacts and local envs from Docker build context
+app/models/
+models-and-dataset/
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+node_modules
+tests/
+htmlcov/
+.pytest_cache
+*.egg-info
+dist/
+build/
