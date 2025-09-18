@@ -43,8 +43,8 @@ services:
       test: ["CMD", "python", "-c", "import sys,urllib.request; req=urllib.request.Request('http://127.0.0.1:8001/readyz'); r=urllib.request.urlopen(req); sys.exit(0 if r.getcode()==200 else 1)"]
       interval: 10s
       timeout: 5s
-      retries: 5
-  start_period: 60s
+    retries: 5
+    start_period: 60s
 
 volumes:
   postgres_data:
