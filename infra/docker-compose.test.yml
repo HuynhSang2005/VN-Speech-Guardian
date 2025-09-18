@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  ai-worker-test:
+    image: python:3.11-slim
+    container_name: vsg-ai-worker-test
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:rw
+      - /tmp/.cache/pip:/root/.cache/pip:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PIP_NO_CACHE_DIR=0
+    command: /bin/sh -c "pip install --upgrade pip setuptools wheel && pip install -r /workspace/apps/ai-worker/requirements-test.txt && pytest -q /workspace/apps/ai-worker/tests"
+    tty: true
+    network_mode: host

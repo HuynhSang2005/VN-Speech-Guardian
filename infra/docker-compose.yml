@@ -38,10 +38,13 @@ services:
       # Bind model directories from repo into container for quick iteration
       - ../apps/ai-worker/app/models:/app/app/models:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/readyz"]
+      # Use python to probe /readyz (curl may not be present in minimal images).
+      # Exit 0 on HTTP 200, else exit 1. Add start_period to allow warm-up.
+      test: ["CMD", "python", "-c", "import sys,urllib.request; req=urllib.request.Request('http://127.0.0.1:8001/readyz'); r=urllib.request.urlopen(req); sys.exit(0 if r.getcode()==200 else 1)"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+  start_period: 60s
 
 volumes:
   postgres_data:
