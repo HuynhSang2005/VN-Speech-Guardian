@@ -5,6 +5,15 @@ import * as https from 'node:https';
 import { URL } from 'node:url';
 
 /**
+ * Network performance metrics interface cho adaptive buffering
+ */
+interface NetworkMetrics {
+  latency: number;      // milliseconds
+  throughput: number;   // bytes per second
+  timestamp?: number;   // optional timestamp
+}
+
+/**
  * AI Worker Service - HTTP Connection Pooling Implementation
  * 
  * Mục đích: Optimize connection performance giữa Gateway và AI Worker
@@ -27,26 +36,53 @@ export class AiWorkerService {
   private readonly httpAgent: http.Agent;
   private readonly httpsAgent: https.Agent;
 
-  // Retry configuration constants
-  private static readonly MAX_RETRIES = 3;
-  private static readonly BASE_DELAY_MS = 100;
-  private static readonly RETRY_MULTIPLIER = 2;
+  // ==================== CONFIGURATION CONSTANTS ====================
+  
+  // HTTP Connection Pool Configuration
+  private static readonly CONNECTION_POOL_CONFIG = {
+    KEEP_ALIVE: true,
+    MAX_SOCKETS: 3,         // MVP limit 1-3 phiên đồng thời  
+    MAX_FREE_SOCKETS: 2,    // Balance resource vs performance
+    SCHEDULING: 'lifo' as const,  // Better cho low request rate
+    TIMEOUT: 5000,          // 5s timeout cho stability
+  };
 
-  // Network error codes that should trigger retry
-  private static readonly RETRYABLE_ERROR_CODES = [
-    'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'
-  ];
+  // Retry Strategy Configuration  
+  private static readonly RETRY_CONFIG = {
+    MAX_RETRIES: 3,
+    BASE_DELAY_MS: 100,
+    MULTIPLIER: 2,
+    RETRYABLE_ERROR_CODES: ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'],
+  };
+
+  // Adaptive Buffering Configuration
+  private static readonly BUFFER_CONFIG = {
+    DEFAULT_SIZE: 4096,         // 4KB cho real-time audio
+    MIN_SIZE: 2048,             // 2KB minimum  
+    MAX_SIZE: 16384,            // 16KB max cho MVP
+    HIGH_LATENCY_THRESHOLD: 200, // 200ms
+    LOW_LATENCY_THRESHOLD: 50,   // 50ms
+    METRICS_HISTORY_SIZE: 10,    // Lưu 10 measurements gần nhất
+    LATENCY_PENALTY: 1000,       // 1s penalty cho failed measurements
+    FALLBACK_THROUGHPUT: 1000,   // 1KB/s conservative estimate
+  };
+
+  // ==================== INSTANCE STATE ====================
+
+  // Adaptive buffering state
+  private currentBufferSize: number = AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE;
+  private networkMetricsHistory: NetworkMetrics[] = [];
 
   constructor(private readonly config: ConfigService) {
     this.baseUrl = this.config.get('AI_WORKER_URL') || 'http://localhost:8000';
     
-    // Agent configuration được optimize cho MVP workload
+    // VI: Agent configuration từ centralized config
     const agentConfig = {
-      keepAlive: true,
-      maxSockets: 3,          // Tối đa 3 connections đồng thời
-      maxFreeSockets: 2,      // Giữ 2 idle connections trong pool
-      scheduling: 'lifo' as const,  // LIFO better cho low request rate
-      timeout: 5000,          // 5s timeout cho stability
+      keepAlive: AiWorkerService.CONNECTION_POOL_CONFIG.KEEP_ALIVE,
+      maxSockets: AiWorkerService.CONNECTION_POOL_CONFIG.MAX_SOCKETS,
+      maxFreeSockets: AiWorkerService.CONNECTION_POOL_CONFIG.MAX_FREE_SOCKETS,
+      scheduling: AiWorkerService.CONNECTION_POOL_CONFIG.SCHEDULING,
+      timeout: AiWorkerService.CONNECTION_POOL_CONFIG.TIMEOUT,
     };
 
     this.httpAgent = new http.Agent(agentConfig);
@@ -55,7 +91,7 @@ export class AiWorkerService {
     this.logger.debug(
       `HTTP Agent initialized: keepAlive=${agentConfig.keepAlive}, ` +
       `maxSockets=${agentConfig.maxSockets}, maxFreeSockets=${agentConfig.maxFreeSockets}, ` +
-      `scheduling=${agentConfig.scheduling}`
+      `scheduling=${agentConfig.scheduling}, timeout=${agentConfig.timeout}ms`
     );
   }
 
@@ -71,11 +107,11 @@ export class AiWorkerService {
   async forwardAudio(sessionId: string | undefined, audio: Buffer): Promise<any> {
     const url = new URL('/asr/stream', this.baseUrl);
     
-    for (let attempt = 1; attempt <= AiWorkerService.MAX_RETRIES; attempt++) {
+    for (let attempt = 1; attempt <= AiWorkerService.RETRY_CONFIG.MAX_RETRIES; attempt++) {
       try {
         this.logger.debug(
           `Forward audio via HTTP Agent: ${url.toString()} ` +
-          `(session=${sessionId}, attempt=${attempt}/${AiWorkerService.MAX_RETRIES}, size=${audio.length}B)`
+          `(session=${sessionId}, attempt=${attempt}/${AiWorkerService.RETRY_CONFIG.MAX_RETRIES}, size=${audio.length}B)`
         );
 
         const response = await this.makeHttpRequest(url, sessionId, audio);
@@ -87,20 +123,21 @@ export class AiWorkerService {
         return response;
         
       } catch (err: any) {
-        const isLastAttempt = attempt === AiWorkerService.MAX_RETRIES;
+        const isLastAttempt = attempt === AiWorkerService.RETRY_CONFIG.MAX_RETRIES;
         const shouldRetry = this.isRetryableError(err);
         
         if (!isLastAttempt && shouldRetry) {
           // Retryable error - apply exponential backoff
           this.logger.debug(`Retryable error on attempt ${attempt}: ${err?.message}`);
-          const delayMs = AiWorkerService.BASE_DELAY_MS * Math.pow(AiWorkerService.RETRY_MULTIPLIER, attempt - 1);
+          const delayMs = AiWorkerService.RETRY_CONFIG.BASE_DELAY_MS * 
+            Math.pow(AiWorkerService.RETRY_CONFIG.MULTIPLIER, attempt - 1);
           await this.sleep(delayMs);
           continue;
         }
         
         // Final attempt or non-retryable error
         this.logger.error(
-          `HTTP Agent request failed (attempt ${attempt}/${AiWorkerService.MAX_RETRIES}): ${err?.message}`
+          `HTTP Agent request failed (attempt ${attempt}/${AiWorkerService.RETRY_CONFIG.MAX_RETRIES}): ${err?.message}`
         );
         throw err;
       }
@@ -189,7 +226,7 @@ export class AiWorkerService {
    */
   private isRetryableError(err: any): boolean {
     // Check network error codes
-    if (AiWorkerService.RETRYABLE_ERROR_CODES.some(code => 
+    if (AiWorkerService.RETRY_CONFIG.RETRYABLE_ERROR_CODES.some(code => 
       err.code === code || err.message?.includes(code)
     )) {
       return true;
@@ -274,6 +311,176 @@ export class AiWorkerService {
       `pending=${metrics.pendingRequests}, ` +
       `reuse=${(metrics.reuseRate * 100).toFixed(1)}%`
     );
+  }
+
+  // ==================== ADAPTIVE BUFFERING METHODS ====================
+
+  /**
+   * Lấy current buffer size cho real-time audio processing
+   */
+  getCurrentBufferSize(): number {
+    return this.currentBufferSize;
+  }
+
+  /**
+   * Set buffer size với validation cho MVP constraints
+   */
+  setBufferSize(size: number): void {
+    const clampedSize = Math.max(
+      AiWorkerService.BUFFER_CONFIG.MIN_SIZE,
+      Math.min(size, AiWorkerService.BUFFER_CONFIG.MAX_SIZE)
+    );
+    
+    if (clampedSize !== this.currentBufferSize) {
+      this.logger.debug(`Buffer size changed: ${this.currentBufferSize} -> ${clampedSize} bytes`);
+      this.currentBufferSize = clampedSize;
+    }
+  }
+
+  /**
+   * Measure network latency bằng cách ping AI Worker
+   */
+  async measureNetworkLatency(): Promise<number> {
+    const startTime = Date.now();
+    
+    try {
+      // VI: Sử dụng HEAD request để minimize data transfer
+      await this.makeHttpRequest(new URL('/health', this.baseUrl), '', Buffer.alloc(0));
+      return Date.now() - startTime;
+    } catch (error) {
+      // VI: Nếu lỗi, assume worst case latency
+      return AiWorkerService.BUFFER_CONFIG.LATENCY_PENALTY;
+    }
+  }
+
+  /**
+   * Measure throughput bằng test data transfer
+   */
+  async measureThroughput(testData: Buffer): Promise<number> {
+    const startTime = Date.now();
+    const dataSize = testData.length;
+    
+    try {
+      await this.makeHttpRequest(new URL('/ping', this.baseUrl), 'throughput-test', testData);
+      const duration = Date.now() - startTime;
+      
+      // VI: Throughput = bytes per second
+      return Math.round((dataSize * 1000) / duration);
+    } catch (error) {
+      // VI: Fallback throughput assumption cho failed measurements  
+      return AiWorkerService.BUFFER_CONFIG.FALLBACK_THROUGHPUT;
+    }
+  }
+
+  /**
+   * Record network metrics cho trend analysis
+   */
+  recordNetworkMetrics(latency: number, throughput: number): void {
+    const metrics: NetworkMetrics = {
+      latency,
+      throughput,
+      timestamp: Date.now()
+    };
+
+    this.networkMetricsHistory.push(metrics);
+
+    // VI: Giữ chỉ METRICS_HISTORY_SIZE measurements gần nhất
+    if (this.networkMetricsHistory.length > AiWorkerService.BUFFER_CONFIG.METRICS_HISTORY_SIZE) {
+      this.networkMetricsHistory.shift();
+    }
+
+    this.logger.debug(`Network metrics recorded: latency=${latency}ms, throughput=${throughput} B/s`);
+  }
+
+  /**
+   * Get network metrics history cho analysis
+   */
+  getNetworkMetricsHistory(): NetworkMetrics[] {
+    return [...this.networkMetricsHistory]; // Return copy để avoid mutation
+  }
+
+  /**
+   * Calculate optimal buffer size dựa trên network metrics history
+   */
+  calculateOptimalBufferSize(): number {
+    if (this.networkMetricsHistory.length === 0) {
+      return AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE;
+    }
+
+    // VI: Tính average latency và throughput
+    const avgLatency = this.networkMetricsHistory.reduce((sum, m) => sum + m.latency, 0) / this.networkMetricsHistory.length;
+    const avgThroughput = this.networkMetricsHistory.reduce((sum, m) => sum + m.throughput, 0) / this.networkMetricsHistory.length;
+
+    let optimalSize = AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE;
+
+    // VI: Logic để adjust buffer dựa trên network conditions
+    if (avgLatency > AiWorkerService.BUFFER_CONFIG.HIGH_LATENCY_THRESHOLD) {
+      // High latency = cần buffer lớn hơn để avoid underruns
+      optimalSize = Math.round(optimalSize * 1.5);
+    } else if (avgLatency < AiWorkerService.BUFFER_CONFIG.LOW_LATENCY_THRESHOLD) {
+      // Low latency = có thể dùng buffer nhỏ hơn cho lower memory usage
+      optimalSize = Math.round(optimalSize * 0.8);
+    }
+
+    // VI: Adjust dựa trên throughput (lower throughput = larger buffer needed)
+    if (avgThroughput < 3000) { // < 3KB/s
+      optimalSize = Math.round(optimalSize * 1.3);
+    }
+
+    // VI: Ensure constraints cho MVP
+    return Math.max(
+      AiWorkerService.BUFFER_CONFIG.MIN_SIZE,
+      Math.min(optimalSize, AiWorkerService.BUFFER_CONFIG.MAX_SIZE)
+    );
+  }
+
+  /**
+   * Adjust buffer size dựa trên current network conditions
+   */
+  async adjustBufferForNetworkConditions(): Promise<void> {
+    const latency = await this.measureNetworkLatency();
+    
+    if (latency > AiWorkerService.BUFFER_CONFIG.HIGH_LATENCY_THRESHOLD) {
+      // VI: High latency -> increase buffer
+      const newSize = Math.min(
+        this.currentBufferSize * 1.25,
+        AiWorkerService.BUFFER_CONFIG.MAX_SIZE
+      );
+      this.setBufferSize(Math.round(newSize));
+    } else if (latency < AiWorkerService.BUFFER_CONFIG.LOW_LATENCY_THRESHOLD) {
+      // VI: Low latency -> decrease buffer để save memory  
+      const newSize = Math.max(
+        this.currentBufferSize * 0.85,
+        AiWorkerService.BUFFER_CONFIG.MIN_SIZE
+      );
+      this.setBufferSize(Math.round(newSize));
+    }
+  }
+
+  /**
+   * Comprehensive adaptive buffer update với metrics recording
+   */
+  async adaptiveBufferUpdate(): Promise<void> {
+    try {
+      // VI: Measure current network performance
+      const testBuffer = Buffer.alloc(1024); // 1KB test data
+      const [latency, throughput] = await Promise.all([
+        this.measureNetworkLatency(),
+        this.measureThroughput(testBuffer)
+      ]);
+
+      // VI: Record metrics cho trend analysis
+      this.recordNetworkMetrics(latency, throughput);
+
+      // VI: Calculate và apply optimal buffer size
+      const optimalSize = this.calculateOptimalBufferSize();
+      this.setBufferSize(optimalSize);
+
+    } catch (error) {
+      this.logger.warn(`Adaptive buffer update failed: ${error.message}`);
+      // VI: Fallback to default nếu measurements fail
+      this.setBufferSize(AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE);
+    }
   }
 
   /**

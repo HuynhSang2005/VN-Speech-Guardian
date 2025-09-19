@@ -235,4 +235,136 @@ describe('AiWorkerService', () => {
       expect(makeRequestSpy).toHaveBeenCalledTimes(3); // 2 failures + 1 success
     });
   });
+
+  describe('Adaptive Buffering', () => {
+    describe('Buffer Size Management', () => {
+      it('nên initialize với default buffer size cho MVP', () => {
+        // VI: Test buffer size khởi tạo mặc định
+        const bufferSize = service.getCurrentBufferSize();
+        expect(bufferSize).toBe(4096); // 4KB default cho real-time audio
+      });
+
+      it('nên adjust buffer size dựa trên network latency', async () => {
+        // VI: Test dynamic buffer sizing theo network conditions
+        const initialSize = service.getCurrentBufferSize();
+        
+        // Mock high latency scenario (>200ms)
+        jest.spyOn(service as any, 'measureNetworkLatency').mockResolvedValue(300);
+        
+        await service.adjustBufferForNetworkConditions();
+        
+        const newSize = service.getCurrentBufferSize();
+        expect(newSize).toBeGreaterThan(initialSize); // Tăng buffer khi latency cao
+      });
+
+      it('nên decrease buffer size cho low latency network', async () => {
+        // VI: Test giảm buffer cho mạng tốt
+        // Set initial larger buffer
+        service.setBufferSize(8192);
+        const initialSize = service.getCurrentBufferSize();
+        
+        // Mock low latency (< 50ms) 
+        jest.spyOn(service as any, 'measureNetworkLatency').mockResolvedValue(20);
+        
+        await service.adjustBufferForNetworkConditions();
+        
+        const newSize = service.getCurrentBufferSize();
+        expect(newSize).toBeLessThan(initialSize); // Giảm buffer khi mạng tốt
+      });
+    });
+
+    describe('Network Performance Monitoring', () => {
+      it('nên measure network latency accurately', async () => {
+        // VI: Test đo latency chính xác
+        const mockStart = Date.now();
+        jest.spyOn(Date, 'now')
+          .mockReturnValueOnce(mockStart)
+          .mockReturnValueOnce(mockStart + 150); // 150ms latency
+        
+        jest.spyOn(service as any, 'makeHttpRequest').mockResolvedValue({});
+        
+        const latency = await service.measureNetworkLatency();
+        expect(latency).toBe(150);
+      });
+
+      it('nên track throughput cho buffer optimization', async () => {
+        // VI: Test theo dõi throughput để optimize buffer  
+        const testData = Buffer.alloc(1024); // 1KB
+        const mockStart = Date.now();
+        
+        jest.spyOn(Date, 'now')
+          .mockReturnValueOnce(mockStart)
+          .mockReturnValueOnce(mockStart + 100); // 100ms transfer
+        
+        jest.spyOn(service as any, 'makeHttpRequest').mockResolvedValue({});
+        
+        const throughput = await service.measureThroughput(testData);
+        expect(throughput).toBe(10240); // 1KB/100ms = 10.24 KB/s
+      });
+
+      it('nên maintain network performance history', () => {
+        // VI: Test lưu lịch sử performance cho trend analysis
+        service.recordNetworkMetrics(100, 5000); // 100ms latency, 5KB/s throughput
+        service.recordNetworkMetrics(150, 3000);
+        service.recordNetworkMetrics(80, 8000);
+        
+        const history = service.getNetworkMetricsHistory();
+        expect(history).toHaveLength(3);
+        expect(history[0]).toMatchObject({ latency: 100, throughput: 5000 });
+      });
+    });
+
+    describe('Adaptive Buffer Logic', () => {
+      it('nên calculate optimal buffer size cho current conditions', () => {
+        // VI: Test tính toán buffer size optimal
+        const metrics = [
+          { latency: 100, throughput: 5000 },
+          { latency: 120, throughput: 4500 },
+          { latency: 90, throughput: 6000 }
+        ];
+        
+        jest.spyOn(service, 'getNetworkMetricsHistory').mockReturnValue(metrics);
+        
+        const optimalSize = service.calculateOptimalBufferSize();
+        
+        // VI: Buffer size should be based on average conditions
+        // Higher latency = larger buffer, lower throughput = larger buffer  
+        expect(optimalSize).toBeGreaterThanOrEqual(4096); // Min MVP size
+        expect(optimalSize).toBeLessThanOrEqual(16384);   // Max reasonable size
+      });
+
+      it('nên handle buffer size constraints cho MVP limits', () => {
+        // VI: Test giới hạn buffer cho MVP memory constraints
+        // Mock very high latency scenario
+        const extremeMetrics = [
+          { latency: 1000, throughput: 1000 } // Very poor network
+        ];
+        
+        jest.spyOn(service, 'getNetworkMetricsHistory').mockReturnValue(extremeMetrics);
+        
+        const bufferSize = service.calculateOptimalBufferSize();
+        
+        // VI: Không được vượt quá MVP limit dù network kém
+        expect(bufferSize).toBeLessThanOrEqual(16384); // 16KB max cho MVP
+      });
+
+      it('nên trigger buffer resize khi conditions change significantly', async () => {
+        // VI: Test tự động resize buffer khi network thay đổi lớn
+        const initialSize = 4096;
+        service.setBufferSize(initialSize);
+        
+        // Mock network degradation
+        jest.spyOn(service as any, 'measureNetworkLatency').mockResolvedValue(400);
+        jest.spyOn(service as any, 'measureThroughput').mockResolvedValue(2000);
+        
+        const resizeSpy = jest.spyOn(service, 'setBufferSize');
+        
+        await service.adaptiveBufferUpdate();
+        
+        expect(resizeSpy).toHaveBeenCalled();
+        const calledWith = resizeSpy.mock.calls[0][0];
+        expect(calledWith).not.toBe(initialSize);
+      });
+    });
+  });
 });
