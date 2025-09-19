@@ -1,0 +1,68 @@
+# Docker Compose override for development environment
+# This file extends the base docker-compose.yml for local development
+# Usage: docker-compose up (automatically merges with docker-compose.yml)
+
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"  # Standard port for easier local connection
+    environment:
+      - POSTGRES_PASSWORD=vsg_dev_password  # Different from production
+    volumes:
+      # Development: mount local directory for easier backup/restore
+      - ./data/postgres_dev:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c log_statement=all
+      -c log_destination=stderr
+      -c logging_collector=on
+      -c log_min_messages=debug1
+
+  ai-worker:
+    build:
+      target: dependencies  # Build only to deps stage for faster iteration
+    volumes:
+      # Development: mount source code for hot reload (if supported)
+      - ../apps/ai-worker/app:/app/app:rw
+      - ../apps/ai-worker/tests:/app/tests:ro
+    environment:
+      # Development settings
+      AI_LOAD_MODELS: "false"  # Skip model loading for faster startup
+      DEBUG: "true"
+      LOG_LEVEL: "debug"
+    ports:
+      - "8001:8001"
+      - "8002:8002"  # Additional port for debugging
+
+  gateway-nestjs:
+    build:
+      target: build  # Stop at build stage for development
+    volumes:
+      # Development: mount source for potential hot reload
+      - ../apps/gateway-nestjs/src:/usr/src/app/src:ro
+      - ../apps/gateway-nestjs/prisma:/usr/src/app/prisma:ro
+    environment:
+      # Development settings
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      # Enable hot reload if supported
+      HOT_RELOAD: "true"
+    ports:
+      - "3001:3001"
+      - "9229:9229"  # Node.js debugging port
+
+# Development-specific volumes
+volumes:
+  postgres_data_dev:
+    driver: local
+  node_modules_cache:
+    driver: local
+
+# Development network with custom DNS
+networks:
+  vsg-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: vsg-dev-br0

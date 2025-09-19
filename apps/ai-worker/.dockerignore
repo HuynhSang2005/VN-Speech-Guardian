@@ -1,17 +1,89 @@
-# Exclude heavy model artifacts and local envs from Docker build context
+# Optimized .dockerignore for ai-worker FastAPI
+# Exclude heavy model artifacts and dev files from Docker build context
+
+# Model directories (mounted via volumes)
 app/models/
 models-and-dataset/
-.git
-.venv
-venv
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-node_modules
-tests/
-htmlcov/
-.pytest_cache
-*.egg-info
+*.bin
+*.safetensors
+*.onnx
+
+# Python virtual environments
+.venv/
+venv/
+env/
+.env
+.conda/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
 dist/
 build/
+.eggs/
+
+# Testing and coverage
+tests/
+test/
+htmlcov/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter notebooks (if any)
+.ipynb_checkpoints/
+*.ipynb
+
+# Node.js (if mixed project)
+node_modules/
+npm-debug.log*
+
+# Development requirements (keep only prod)
+requirements-dev.txt
+requirements-test.txt
+!requirements-prod.txt

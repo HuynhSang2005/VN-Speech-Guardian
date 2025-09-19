@@ -1,32 +1,57 @@
-# syntax=docker/dockerfile:1
-
-FROM python:3.11-slim AS base
+# Multi-stage optimized Dockerfile for ai-worker FastAPI
+# Build stage - install dependencies and compile if needed
+FROM python:3.11-slim AS dependencies
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-# Install only runtime packages; keep image lean. build-essential removed since
-# we avoid building heavy wheels in-container. If native builds are required,
-# do them in CI and provide wheels or use manylinux wheel indexes.
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     ffmpeg \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Use production requirements (no dev/test deps) to speed up install
-COPY requirements-prod.txt ./requirements-prod.txt
-# Use BuildKit cache to store downloaded wheels between builds and prefer binary wheels
-# Requires BuildKit-enabled docker (Docker Desktop already uses it). This speeds subsequent builds
-# and reduces CPU/network pressure.
+# Copy requirements and install Python dependencies with build cache
+COPY requirements-prod.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade pip setuptools wheel && \
-    pip install --prefer-binary -r requirements-prod.txt
+    pip install --prefer-binary --no-deps -r requirements-prod.txt
 
-# Copy only package source (app) — large models are expected to be bind-mounted in compose
+# Runtime stage - minimal production image
+FROM python:3.11-slim AS runner
+WORKDIR /app
+
+# Install only runtime system dependencies (no build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    ca-certificates \
+    wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy installed Python packages from build stage
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# Copy application source
 COPY app ./app
-# Optionally copy models; for local bind mount is recommended
-# COPY ../../models-and-dataset /models-and-dataset
 
-ENV APP_HOST=0.0.0.0 APP_PORT=8001
+# Create non-root user for security
+RUN useradd --user-group --create-home --shell /bin/false --uid 1001 appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    APP_HOST=0.0.0.0 \
+    APP_PORT=8001
+
+# Expose port
 EXPOSE 8001
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8001/readyz || exit 1
+
+# Start application with optimized uvicorn settings for production
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--access-log"]

@@ -1,0 +1,125 @@
+# Docker Compose for production environment
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  postgres:
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Use environment variable
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=512MB
+      -c effective_cache_size=2GB
+      -c maintenance_work_mem=128MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '1.0'
+
+  ai-worker:
+    restart: always
+    environment:
+      # Production model settings
+      AI_LOAD_MODELS: "true"
+      USE_ONNXRUNTIME: "true"
+      ASR_MODEL_NAME: base  # Larger model for better accuracy
+      PHOBERT_BLOCK_THRESHOLD: "0.90"  # Stricter threshold
+      PHOBERT_WARN_THRESHOLD: "0.70"
+      # Security
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY}
+    volumes:
+      # Production: mount models from secure location
+      - /opt/vsg/models:/app/app/models:ro
+      - ai_worker_prod_cache:/app/.cache
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '3.0'
+        reservations:
+          memory: 2G
+          cpus: '2.0'
+      # Production deployment constraints
+      placement:
+        constraints:
+          - node.labels.gpu==true  # If using GPU acceleration
+
+  gateway-nestjs:
+    restart: always
+    environment:
+      NODE_ENV: production
+      # Production database with connection pooling
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Production AI Worker URL (could be load balanced)
+      AI_WORKER_URL: ${AI_WORKER_URL:-http://ai-worker:8001}
+      
+      # Security configurations
+      JWT_SECRET: ${JWT_SECRET}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      
+      # Production CORS
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      
+      # Tighter rate limiting for production
+      THROTTLE_TTL: "60"
+      THROTTLE_LIMIT: "60"  # Lower limit for production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '1.0'
+      # Production scaling
+      replicas: 2  # Run multiple instances for HA
+
+  # Add reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: vsg-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - gateway-nestjs
+    networks:
+      - vsg-network
+
+volumes:
+  postgres_prod_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/vsg/data/postgres
+  ai_worker_prod_cache:
+    driver: local
+
+# Production network with encrypted overlay (for multi-host deployment)
+networks:
+  vsg-network:
+    driver: overlay
+    encrypted: true
+    attachable: true

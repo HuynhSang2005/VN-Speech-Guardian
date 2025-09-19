@@ -1,10 +1,72 @@
+# Optimized .dockerignore for gateway-nestjs
+# Exclude development and test files to reduce build context
+
+# Dependencies
 node_modules
-npm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (built in container)
 dist
-.env
-.env.local
-.env.*.local
-coverage
+build
+*.tgz
+*.tar.gz
+
+# Environment files  
+.env*
+!.env.example
+
+# IDE and editors
 .vscode
 .idea
+*.swp
+*.swo
+*~
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Testing
+coverage
+.nyc_output
+test
+tests
+**/*.test.ts
+**/*.spec.ts
+**/__tests__
+jest.config.js
+
+# Logs and runtime
+logs
+*.log
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Documentation (except README)
+*.md
+!README.md
+docs/
+
+# Development config (keep build config)
+.eslintrc*
+.prettierrc*
+tsconfig.json
+!tsconfig.build.json
+
+# Temporary files
+*.tmp
+*.temp
