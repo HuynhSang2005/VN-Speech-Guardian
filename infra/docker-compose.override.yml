@@ -21,8 +21,6 @@ services:
       -c log_min_messages=debug1
 
   ai-worker:
-    build:
-      target: dependencies  # Build only to deps stage for faster iteration
     volumes:
       # Development: mount source code for hot reload (if supported)
       - ../apps/ai-worker/app:/app/app:rw
@@ -37,8 +35,6 @@ services:
       - "8002:8002"  # Additional port for debugging
 
   gateway-nestjs:
-    build:
-      target: build  # Stop at build stage for development
     volumes:
       # Development: mount source for potential hot reload
       - ../apps/gateway-nestjs/src:/usr/src/app/src:ro

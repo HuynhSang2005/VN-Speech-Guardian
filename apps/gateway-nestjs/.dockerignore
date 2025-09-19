@@ -64,7 +64,8 @@ docs/
 # Development config (keep build config)
 .eslintrc*
 .prettierrc*
-tsconfig.json
+# Include tsconfig files required for container build
+!tsconfig.json
 !tsconfig.build.json
 
 # Temporary files
