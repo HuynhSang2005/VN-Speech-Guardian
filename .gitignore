@@ -6,3 +6,6 @@ __pycache__/
 # Ignore heavy model fine-tuned checkpoints (we keep phobert-hsd but not bert-finetuned)
 apps/ai-worker/app/models/bert-finetuned/*
 apps/ai-worker/app/models/bert-finetuned-onnx/*
+
+# Ignore PostgreSQL data directory (development database)
+infra/data/postgres_dev/
