@@ -367,4 +367,146 @@ describe('AiWorkerService', () => {
       });
     });
   });
+
+  describe('Smart Chunking', () => {
+    describe('Chunk Size Calculation', () => {
+      it('nên calculate optimal chunk size dựa trên buffer size', () => {
+        // VI: Test chunk size calculation dựa trên current buffer
+        service.setBufferSize(8192); // 8KB buffer
+        
+        const chunkSize = service.calculateOptimalChunkSize();
+        
+        // VI: Chunk size should be fraction của buffer (typically 25-50%)
+        expect(chunkSize).toBeGreaterThanOrEqual(2048); // Min 2KB
+        expect(chunkSize).toBeLessThanOrEqual(4096);    // Max 50% of buffer
+      });
+
+      it('nên adjust chunk size cho network latency conditions', async () => {
+        // VI: Test dynamic chunking dựa trên network performance
+        const initialChunkSize = service.calculateOptimalChunkSize();
+        
+        // Mock high latency network
+        jest.spyOn(service as any, 'getAverageLatency').mockReturnValue(300); // 300ms
+        
+        const adjustedChunkSize = service.calculateOptimalChunkSize();
+        
+        // VI: High latency = larger chunks để reduce overhead
+        expect(adjustedChunkSize).toBeGreaterThan(initialChunkSize);
+      });
+
+      it('nên handle AI Worker processing speed trong chunk calculation', () => {
+        // VI: Test chunking dựa trên AI processing capabilities
+        const mockProcessingMetrics = {
+          averageProcessingTime: 150, // 150ms per chunk
+          queueDepth: 2,
+          cpuUsage: 0.7
+        };
+        
+        jest.spyOn(service, 'getAIWorkerMetrics').mockReturnValue(mockProcessingMetrics);
+        
+        const chunkSize = service.calculateOptimalChunkSize();
+        
+        // VI: Higher processing time = smaller chunks để avoid timeouts
+        expect(chunkSize).toBeLessThanOrEqual(6144); // Should be reasonable for 150ms processing
+      });
+    });
+
+    describe('Dynamic Chunking Logic', () => {
+      it('nên provide chunk size constraints cho MVP limits', () => {
+        // VI: Test chunking constraints cho memory efficiency
+        const constraints = service.getChunkingConstraints();
+        
+        expect(constraints.minChunkSize).toBe(1024);   // 1KB minimum
+        expect(constraints.maxChunkSize).toBe(8192);   // 8KB maximum cho MVP
+        expect(constraints.defaultChunkSize).toBe(2048); // 2KB default
+      });
+
+      it('nên chunk large audio buffers intelligently', () => {
+        // VI: Test chunking large audio data thành optimal sizes
+        const largeAudioBuffer = Buffer.alloc(32768); // 32KB audio data
+        
+        const chunks = service.chunkAudioData(largeAudioBuffer);
+        
+        expect(chunks.length).toBeGreaterThan(4); // Should split into multiple chunks
+        expect(chunks.every(chunk => chunk.length <= 8192)).toBe(true); // Each chunk ≤ 8KB
+        
+        // VI: Total size should match original
+        const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        expect(totalSize).toBe(32768);
+      });
+
+      it('nên maintain chunk sequence và metadata', () => {
+        // VI: Test chunk metadata cho proper reassembly
+        const audioData = Buffer.alloc(10240); // 10KB
+        
+        const chunkedResults = service.chunkAudioWithMetadata(audioData, 'session-123');
+        
+        expect(chunkedResults).toHaveProperty('sessionId', 'session-123');
+        expect(chunkedResults).toHaveProperty('totalChunks');
+        expect(chunkedResults).toHaveProperty('chunks');
+        
+        // VI: Each chunk should have sequence info
+        chunkedResults.chunks.forEach((chunk, index) => {
+          expect(chunk).toHaveProperty('sequenceId', index);
+          expect(chunk).toHaveProperty('data');
+          expect(chunk).toHaveProperty('size');
+          expect(chunk.data).toBeInstanceOf(Buffer);
+        });
+      });
+    });
+
+    describe('Performance Integration', () => {
+      it('nên integrate chunking với adaptive buffering', async () => {
+        // VI: Test integration giữa chunking và buffer management
+        service.setBufferSize(6144); // 6KB buffer
+        
+        const chunkSize = service.calculateOptimalChunkSize();
+        
+        // VI: Chunk size should complement buffer size
+        expect(chunkSize).toBeLessThanOrEqual(6144);
+        expect(chunkSize).toBeGreaterThanOrEqual(1536); // At least 25% của buffer
+      });
+
+      it('nên optimize chunking cho streaming performance', async () => {
+        // VI: Test streaming optimization với real-time constraints  
+        const streamingMetrics = {
+          targetLatency: 100,    // 100ms target
+          currentLatency: 150,   // Current actual latency
+          processingBacklog: 3   // 3 chunks in queue
+        };
+        
+        jest.spyOn(service, 'getStreamingMetrics').mockReturnValue(streamingMetrics);
+        
+        const optimizedChunkSize = service.calculateOptimalChunkSize();
+        
+        // VI: Should reduce chunk size when backlog high
+        expect(optimizedChunkSize).toBeLessThanOrEqual(3072); // Smaller chunks for better streaming
+      });
+
+      it('nên provide chunking performance metrics', () => {
+        // VI: Test metrics collection cho chunking performance
+        const largeBuffer = Buffer.alloc(16384); // 16KB
+        
+        const startTime = Date.now();
+        const chunks = service.chunkAudioData(largeBuffer);
+        const endTime = Date.now();
+        
+        const metrics = service.getChunkingMetrics();
+        
+        expect(metrics).toHaveProperty('totalChunks', chunks.length);
+        expect(metrics).toHaveProperty('averageChunkSize');
+        expect(metrics).toHaveProperty('chunkingLatency');
+        expect(metrics.chunkingLatency).toBeLessThan(50); // Should be fast (<50ms)
+      });
+
+      it('nên handle chunking errors gracefully', () => {
+        // VI: Test error handling trong chunking process
+        const invalidBuffer = null;
+        
+        expect(() => {
+          service.chunkAudioData(invalidBuffer as any);
+        }).toThrow('Invalid audio buffer for chunking');
+      });
+    });
+  });
 });

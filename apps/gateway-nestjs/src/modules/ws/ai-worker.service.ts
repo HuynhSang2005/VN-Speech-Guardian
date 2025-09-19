@@ -14,6 +14,45 @@ interface NetworkMetrics {
 }
 
 /**
+ * Smart chunking interfaces cho intelligent audio processing
+ */
+interface ChunkingConstraints {
+  minChunkSize: number;     // bytes
+  maxChunkSize: number;     // bytes  
+  defaultChunkSize: number; // bytes
+}
+
+interface AudioChunk {
+  sequenceId: number;       // chunk order
+  data: Buffer;            // audio data
+  size: number;            // data size in bytes
+}
+
+interface ChunkedAudioResult {
+  sessionId: string;       // session identifier
+  totalChunks: number;     // total number of chunks
+  chunks: AudioChunk[];    // array of chunks với metadata
+}
+
+interface AIWorkerMetrics {
+  averageProcessingTime: number;  // milliseconds per chunk
+  queueDepth: number;            // pending chunks in queue
+  cpuUsage: number;              // 0-1 CPU utilization
+}
+
+interface StreamingMetrics {
+  targetLatency: number;    // target latency in ms
+  currentLatency: number;   // current actual latency
+  processingBacklog: number; // chunks waiting
+}
+
+interface ChunkingMetrics {
+  totalChunks: number;      // total chunks processed
+  averageChunkSize: number; // average size in bytes
+  chunkingLatency: number;  // time to chunk in ms
+}
+
+/**
  * AI Worker Service - HTTP Connection Pooling Implementation
  * 
  * Mục đích: Optimize connection performance giữa Gateway và AI Worker
@@ -67,11 +106,29 @@ export class AiWorkerService {
     FALLBACK_THROUGHPUT: 1000,   // 1KB/s conservative estimate
   };
 
+  // Smart Chunking Configuration
+  private static readonly CHUNKING_CONFIG = {
+    MIN_CHUNK_SIZE: 1024,        // 1KB minimum chunk
+    MAX_CHUNK_SIZE: 8192,        // 8KB maximum chunk cho MVP
+    DEFAULT_CHUNK_SIZE: 2048,    // 2KB default chunk
+    CHUNK_BUFFER_RATIO: 0.4,     // Chunk = 40% của buffer size
+    HIGH_PROCESSING_THRESHOLD: 150,  // 150ms processing time
+    BACKLOG_THRESHOLD: 3,        // Max 3 chunks in queue
+    TARGET_STREAMING_LATENCY: 100,  // 100ms target
+  };
+
   // ==================== INSTANCE STATE ====================
 
   // Adaptive buffering state
   private currentBufferSize: number = AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE;
   private networkMetricsHistory: NetworkMetrics[] = [];
+
+  // Smart chunking state
+  private chunkingMetrics: ChunkingMetrics = {
+    totalChunks: 0,
+    averageChunkSize: AiWorkerService.CHUNKING_CONFIG.DEFAULT_CHUNK_SIZE,
+    chunkingLatency: 0
+  };
 
   constructor(private readonly config: ConfigService) {
     this.baseUrl = this.config.get('AI_WORKER_URL') || 'http://localhost:8000';
@@ -481,6 +538,212 @@ export class AiWorkerService {
       // VI: Fallback to default nếu measurements fail
       this.setBufferSize(AiWorkerService.BUFFER_CONFIG.DEFAULT_SIZE);
     }
+  }
+
+  // ==================== SMART CHUNKING METHODS ====================
+
+  /**
+   * Calculate optimal chunk size dựa trên buffer size, network conditions và AI Worker performance
+   */
+  calculateOptimalChunkSize(): number {
+    // VI: Base chunk size từ current buffer với intelligent ratio
+    let chunkSize = Math.round(this.currentBufferSize * AiWorkerService.CHUNKING_CONFIG.CHUNK_BUFFER_RATIO);
+    
+    // VI: Advanced adjustments dựa trên multiple factors
+    const avgLatency = this.getAverageLatency();
+    const aiMetrics = this.getAIWorkerMetrics();
+    const streamingMetrics = this.getStreamingMetrics();
+    
+    // VI: Network latency adjustments
+    if (avgLatency > AiWorkerService.CHUNKING_CONFIG.HIGH_PROCESSING_THRESHOLD) {
+      // High latency = larger chunks để reduce network overhead
+      chunkSize = Math.round(chunkSize * 1.3);
+    } else if (avgLatency < AiWorkerService.BUFFER_CONFIG.LOW_LATENCY_THRESHOLD) {
+      // Low latency = smaller chunks cho better real-time responsiveness
+      chunkSize = Math.round(chunkSize * 0.75);
+    }
+    
+    // VI: AI Worker processing speed adjustments
+    if (aiMetrics.averageProcessingTime > AiWorkerService.CHUNKING_CONFIG.HIGH_PROCESSING_THRESHOLD) {
+      // Slow processing = smaller chunks để avoid timeouts
+      chunkSize = Math.round(chunkSize * 0.8);
+    }
+    
+    // VI: Streaming backlog adjustments
+    if (streamingMetrics.processingBacklog > AiWorkerService.CHUNKING_CONFIG.BACKLOG_THRESHOLD) {
+      // High backlog = smaller chunks để clear queue faster
+      chunkSize = Math.round(chunkSize * 0.7);
+    }
+
+    // VI: Ensure MVP constraints với performance bounds
+    return Math.max(
+      AiWorkerService.CHUNKING_CONFIG.MIN_CHUNK_SIZE,
+      Math.min(chunkSize, AiWorkerService.CHUNKING_CONFIG.MAX_CHUNK_SIZE)
+    );
+  }
+
+  /**
+   * Get chunking constraints cho MVP limits
+   */
+  getChunkingConstraints(): ChunkingConstraints {
+    return {
+      minChunkSize: AiWorkerService.CHUNKING_CONFIG.MIN_CHUNK_SIZE,
+      maxChunkSize: AiWorkerService.CHUNKING_CONFIG.MAX_CHUNK_SIZE,
+      defaultChunkSize: AiWorkerService.CHUNKING_CONFIG.DEFAULT_CHUNK_SIZE
+    };
+  }
+
+  /**
+   * Chunk large audio buffer thành optimal sizes với intelligent sizing
+   */
+  chunkAudioData(audioBuffer: Buffer): Buffer[] {
+    if (!audioBuffer || !Buffer.isBuffer(audioBuffer)) {
+      throw new Error('Invalid audio buffer for chunking');
+    }
+
+    const startTime = Date.now();
+    const optimalChunkSize = this.calculateOptimalChunkSize();
+    const chunks: Buffer[] = [];
+    
+    // VI: Intelligent chunking với adaptive sizing
+    let remainingBytes = audioBuffer.length;
+    let offset = 0;
+    
+    while (offset < audioBuffer.length) {
+      // VI: Adjust chunk size for last chunk để avoid very small remainder
+      let currentChunkSize = optimalChunkSize;
+      if (remainingBytes < optimalChunkSize * 1.5) {
+        // Nếu remaining < 1.5x chunk size, sử dụng hết remaining
+        currentChunkSize = remainingBytes;
+      }
+      
+      const end = Math.min(offset + currentChunkSize, audioBuffer.length);
+      const chunk = audioBuffer.subarray(offset, end);
+      chunks.push(chunk);
+      
+      offset = end;
+      remainingBytes = audioBuffer.length - offset;
+    }
+
+    // VI: Update performance metrics với detailed tracking
+    const processingTime = Date.now() - startTime;
+    this.updateChunkingMetrics(chunks.length, optimalChunkSize, processingTime);
+
+    this.logger.debug(
+      `Smart chunking completed: ${chunks.length} chunks, ` +
+      `avg size: ${optimalChunkSize}B, processing: ${processingTime}ms`
+    );
+    
+    return chunks;
+  }
+
+  /**
+   * Update chunking metrics với detailed performance tracking
+   */
+  private updateChunkingMetrics(chunkCount: number, avgChunkSize: number, processingTime: number): void {
+    // VI: Rolling average cho metrics
+    const totalChunks = this.chunkingMetrics.totalChunks + chunkCount;
+    this.chunkingMetrics.averageChunkSize = Math.round(
+      (this.chunkingMetrics.averageChunkSize * this.chunkingMetrics.totalChunks + avgChunkSize * chunkCount) / totalChunks
+    );
+    
+    this.chunkingMetrics.totalChunks = totalChunks;
+    this.chunkingMetrics.chunkingLatency = processingTime;
+  }
+
+  /**
+   * Chunk audio với metadata cho proper reassembly
+   */
+  chunkAudioWithMetadata(audioBuffer: Buffer, sessionId: string): ChunkedAudioResult {
+    const chunks = this.chunkAudioData(audioBuffer);
+    
+    const audioChunks: AudioChunk[] = chunks.map((chunk, index) => ({
+      sequenceId: index,
+      data: chunk,
+      size: chunk.length
+    }));
+
+    return {
+      sessionId,
+      totalChunks: chunks.length,
+      chunks: audioChunks
+    };
+  }
+
+  /**
+   * Get current chunking performance metrics
+   */
+  getChunkingMetrics(): ChunkingMetrics {
+    return { ...this.chunkingMetrics }; // Return copy
+  }
+
+  /**
+   * Get average network latency từ metrics history
+   */
+  private getAverageLatency(): number {
+    if (this.networkMetricsHistory.length === 0) {
+      return AiWorkerService.BUFFER_CONFIG.LOW_LATENCY_THRESHOLD; // Default assumption
+    }
+
+    const totalLatency = this.networkMetricsHistory.reduce((sum, m) => sum + m.latency, 0);
+    return totalLatency / this.networkMetricsHistory.length;
+  }
+
+  /**
+   * Comprehensive performance optimization integrating chunking với buffer management
+   */
+  async optimizeChunkingPerformance(): Promise<void> {
+    try {
+      // VI: Update network metrics first
+      const testBuffer = Buffer.alloc(1024);
+      const [latency, throughput] = await Promise.all([
+        this.measureNetworkLatency(),
+        this.measureThroughput(testBuffer)
+      ]);
+      
+      this.recordNetworkMetrics(latency, throughput);
+      
+      // VI: Update buffer size based on latest metrics
+      const optimalBufferSize = this.calculateOptimalBufferSize();
+      this.setBufferSize(optimalBufferSize);
+      
+      // VI: Log optimization results
+      const chunkSize = this.calculateOptimalChunkSize();
+      this.logger.debug(
+        `Performance optimized: buffer=${optimalBufferSize}B, chunk=${chunkSize}B, ` +
+        `latency=${latency}ms, throughput=${throughput}B/s`
+      );
+      
+    } catch (error) {
+      this.logger.warn(`Performance optimization failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get AI Worker processing metrics (mock implementation cho MVP)
+   */
+  getAIWorkerMetrics(): AIWorkerMetrics {
+    // VI: Mock metrics - trong production sẽ lấy từ AI Worker API
+    const avgLatency = this.getAverageLatency();
+    return {
+      averageProcessingTime: Math.max(50, avgLatency * 0.8), // Estimate processing time
+      queueDepth: Math.random() > 0.7 ? 2 : 1, // Random queue depth
+      cpuUsage: Math.min(0.8, avgLatency / 200) // Estimate CPU từ latency
+    };
+  }
+
+  /**
+   * Get streaming performance metrics
+   */
+  getStreamingMetrics(): StreamingMetrics {
+    const currentLatency = this.getAverageLatency();
+    const aiMetrics = this.getAIWorkerMetrics();
+    
+    return {
+      targetLatency: AiWorkerService.CHUNKING_CONFIG.TARGET_STREAMING_LATENCY,
+      currentLatency,
+      processingBacklog: aiMetrics.queueDepth
+    };
   }
 
   /**
