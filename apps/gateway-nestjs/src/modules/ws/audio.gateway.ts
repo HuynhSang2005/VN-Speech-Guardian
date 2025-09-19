@@ -1,6 +1,7 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { APP_CONFIG } from '../../config/app.config';
 import { AiWorkerService } from './ai-worker.service';
 
 interface AudioBuffer {
@@ -9,7 +10,11 @@ interface AudioBuffer {
   totalSize: number;
 }
 
-@WebSocketGateway({ namespace: '/audio', transports: ['websocket'] })
+@WebSocketGateway({ 
+  namespace: APP_CONFIG.WEBSOCKET.NAMESPACE, 
+  transports: ['websocket'],
+  cors: APP_CONFIG.WEBSOCKET.CORS
+})
 export class AudioGateway implements OnModuleInit, OnModuleDestroy {
   @WebSocketServer()
   server: Server;
