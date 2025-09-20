@@ -3,3 +3,4 @@
  */
 
 export * from './ai-worker.dto';
+export * from './circuit-breaker.dto';

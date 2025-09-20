@@ -3,3 +3,4 @@
  */
 
 export * from './ai-worker.model';
+export * from './circuit-breaker.model';
