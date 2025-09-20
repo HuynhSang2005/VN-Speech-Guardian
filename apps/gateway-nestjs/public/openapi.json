@@ -1,6 +1,48 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
     "/api/auth/clerk": {
       "post": {
         "description": "Send Clerk JWT either in request body or Authorization header. User will be created/synced in database.",
@@ -389,7 +431,7 @@
           },
           "createdAt": {
             "type": "string",
-            "example": "2025-09-15T06:43:36.746Z",
+            "example": "2025-09-20T18:00:16.781Z",
             "description": "Timestamp when detection was created"
           }
         },
