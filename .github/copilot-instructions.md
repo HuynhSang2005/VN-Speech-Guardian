@@ -307,7 +307,54 @@ Ghi chú bổ sung:
 
 ---
 
-## 8) Tóm tắt 1 dòng
-**Copilot làm theo path-specific + prompt nhỏ → test xanh → MVP hoàn chỉnh – architecture đã chuẩn scale.**
+## 8) UI/UX Design Specifications – **AI Design Tool Integration**
+
+### Interface Requirements cho Speech Guardian
+| Trang | Mô tả UI/UX | AI Tool Prompt |
+|---|---|---|
+| **/live** | **Full-screen immersive** - Dark theme, central circular visualizer (300px), gradient start/stop button, real-time transcript panel với detection highlights | `Create modern speech interface: dark theme #1F2937, circular waveform #10B981, gradient button #3B82F6→#1D4ED8, scrolling transcript with highlights` |
+| **/dashboard** | **Admin-style analytics** - Light theme, sidebar nav (250px), 3-card metrics row, 2x2 chart grid, recent activity list | `Design clean analytics dashboard: light #FAFAFA, sidebar nav, metrics cards with trends, charts grid (line/donut/heatmap/table)` |
+| **/sessions** | **Data table interface** - Clean white, advanced filtering header, sortable columns, severity badges, pagination, full-screen modal | `Create data table: white background, filter controls, sortable columns, action buttons, modal overlay for details` |
+| **/login** | **Centered auth card** - Clerk integration, brand area với tagline "Protecting Vietnamese Speech", gradient background | `Design auth interface: centered card, logo area, Clerk components, subtle gradient background` |
+
+### Design Tokens cho AI Generation
+```css
+/* Màu sắc chính */
+--primary: #3B82F6;     /* Blue - primary actions */
+--success: #10B981;     /* Green - safe content */  
+--warning: #F59E0B;     /* Orange - medium alerts */
+--danger: #EF4444;      /* Red - harmful content */
+--background: #FAFAFA;  /* Light gray background */
+--surface: #FFFFFF;     /* White cards */
+--dark: #1F2937;        /* Dark theme background */
+
+/* Typography */
+--font-family: 'Inter', sans-serif;
+--heading: 1.5rem;      /* Page titles */
+--subheading: 1.125rem; /* Section titles */
+--body: 1rem;           /* Regular text */
+--caption: 0.875rem;    /* Small text */
+
+/* Spacing Scale */
+--space-xs: 0.5rem;     /* 8px - tight spacing */
+--space-sm: 1rem;       /* 16px - normal spacing */
+--space-md: 1.5rem;     /* 24px - section spacing */
+--space-lg: 2rem;       /* 32px - page margins */
+--space-xl: 3rem;       /* 48px - large gaps */
+```
+
+### Component AI Prompts
+**Sử dụng với Cursor/GitHub Copilot để generate components:**
+```typescript
+// PROMPT: Generate React button with variants primary/secondary/danger, sizes sm/md/lg, states hover/active/disabled
+// PROMPT: Create Radix Dialog composition với dark/light theme support, animations, proper a11y
+// PROMPT: Build audio visualizer component với circular waveform animation, real-time data binding
+// PROMPT: Design metric card component with trend arrows, loading states, hover animations
+```
+
+---
+
+## 9) Tóm tắt 1 dòng
+**Copilot làm theo path-specific + prompt nhỏ → test xanh → MVP hoàn chỉnh – architecture + UI/UX đã chuẩn scale.**
 ```
 
