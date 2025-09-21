@@ -15,8 +15,8 @@ import {
   HealthCheckResult,
   ExponentialBackoffConfig,
   AIWorkerCircuitBreakerContext,
-} from '@/modules/ws/models';
-import { CIRCUIT_BREAKER_CONFIG } from '@/config';
+} from './circuit-breaker.types';
+import { CIRCUIT_BREAKER_CONFIG } from '../../../config';
 
 @Injectable()
 export class CircuitBreakerService extends EventEmitter {

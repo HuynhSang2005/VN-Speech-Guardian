@@ -2,7 +2,8 @@ import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, Conne
 import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { APP_CONFIG } from '../../config/app.config';
-import { AiWorkerService } from './ai-worker.service';
+import { AiWorkerService } from '../ai-worker/ai-worker.service';
+import { SessionsService } from '../sessions/sessions.service';
 
 interface AudioBuffer {
   chunks: Buffer[];

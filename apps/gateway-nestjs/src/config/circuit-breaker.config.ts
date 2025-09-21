@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { CircuitBreakerConfigSchema, ExponentialBackoffConfigSchema } from '@/modules/ws/models';
+import { CircuitBreakerConfigSchema, ExponentialBackoffConfigSchema } from '../modules/infrastructure/circuit-breaker/circuit-breaker.types';
 
 // Circuit Breaker Config Schema with defaults
 const CIRCUIT_BREAKER_CONFIG_SCHEMA = z.object({

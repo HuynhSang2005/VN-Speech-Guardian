@@ -8,7 +8,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { CommonModule } from './common/common.module';
-import { WsModule } from './modules/ws/ws.module';
+import { RealTimeModule } from './modules/real-time/real-time.module';
+import { AiWorkerModule } from './modules/ai-worker/ai-worker.module';
+import { InfrastructureModule } from './modules/infrastructure/infrastructure.module';
 import { HealthController } from './modules/health/health.controller';
 import { MetricsController } from './modules/metrics/metrics.controller';
 
@@ -53,7 +55,9 @@ import { MetricsController } from './modules/metrics/metrics.controller';
   AuthModule,
   SessionsModule,
   StatsModule,
-  WsModule,
+  RealTimeModule,
+  AiWorkerModule,
+  InfrastructureModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

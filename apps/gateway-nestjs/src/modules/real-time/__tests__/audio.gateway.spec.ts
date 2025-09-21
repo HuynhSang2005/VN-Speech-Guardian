@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AudioGateway } from '../audio.gateway';
-import { AiWorkerService } from '../ai-worker.service';
+import { AiWorkerService } from '../../ai-worker/ai-worker.service';
 import { Socket } from 'socket.io';
 
 describe('AudioGateway', () => {

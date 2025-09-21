@@ -14,7 +14,7 @@ import type {
   ChunkingMetrics,
   ConnectionPoolStatus,
   AIServiceResponse,
-} from './models';
+} from './types/ai-worker.types';
 
 /**
  * AI Worker Service - HTTP Connection Pooling Implementation

@@ -11,7 +11,7 @@ import {
   AIWorkerMetricsSchema,
   ConnectionPoolStatusSchema,
   AIServiceResponseSchema,
-} from '../models/ai-worker.model';
+} from '../../ai-worker/types';
 
 // Network Metrics DTO
 export class NetworkMetricsDto extends createZodDto(NetworkMetricsSchema) {}

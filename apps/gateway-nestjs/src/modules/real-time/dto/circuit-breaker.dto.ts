@@ -11,7 +11,7 @@ import {
   CircuitBreakerCallResultSchema,
   HealthCheckResultSchema,
   AIWorkerCircuitBreakerContextSchema,
-} from '../models/circuit-breaker.model';
+} from '../../infrastructure/circuit-breaker/circuit-breaker.types';
 
 // Circuit Breaker Configuration DTO
 export class CircuitBreakerConfigDto extends createZodDto(CircuitBreakerConfigSchema) {}

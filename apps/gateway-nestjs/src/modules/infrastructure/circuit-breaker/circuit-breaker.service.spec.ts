@@ -13,14 +13,14 @@ process.env.AI_WORKER_BASE_URL = 'http://localhost:8000';
 process.env.AI_WORKER_API_KEY = 'test-api-key';
 
 import { Test } from '@nestjs/testing';
-import { CircuitBreakerService } from '../circuit-breaker.service';
+import { CircuitBreakerService } from './circuit-breaker.service';
 import { CIRCUIT_BREAKER_CONFIG } from '@/config';
 import { 
   CircuitBreakerState, 
   CircuitBreakerMetrics, 
   CircuitBreakerCallResult,
   HealthCheckResult
-} from '@/modules/ws/models';
+} from './circuit-breaker.types';
 
 describe('CircuitBreakerService', () => {
   let service: CircuitBreakerService;
