@@ -23,9 +23,9 @@ applyTo: "apps/web/**/*"
 - **@wavesurfer/react v1** - React wrapper for wavesurfer
 - **react-audio-visualizer-pro v3** - Real-time audio spectrum analysis
 - **react-use v17** - Essential React hooks collection
-- **framer-motion v11** - Smooth animations cho UI transitions
-- **zustand v4** - Lightweight state management cho local state
-- **react-hook-form v7** - Performant forms với Radix UI integration
+- **framer-motion v12** - Hardware-accelerated animations với independent transforms
+- **zustand v5** - Lightweight state management với enhanced TypeScript
+- **react-hook-form v7** - Performant forms với @hookform/resolvers/zod integration
 
 ## 2. Folder structure theo React 19 best practices
 ```
@@ -82,6 +82,99 @@ src/
    ├─ audio.ts               # Audio-related types
    └─ global.d.ts            # Global type declarations
 ```
+
+## 2.1. **CRITICAL**: TypeScript Organization Patterns
+
+### Folder Structure Rules - ALWAYS FOLLOW
+> **🚨 KHÔNG ĐƯỢC code trực tiếp types/interfaces hoặc Zod schemas inline**
+> **📁 PHẢI đặt trong folder riêng có cấu trúc chuẩn enterprise**
+
+Based on Microsoft TypeScript Guidelines và Bulletproof React architecture:
+
+#### Schemas Folder - Runtime Validation (Zod)
+```typescript
+src/schemas/
+├─ index.ts                  # Central export của tất cả schemas
+├─ api/
+│  ├─ sessions.schemas.ts    # API response schemas
+│  ├─ auth.schemas.ts        # Auth request/response schemas 
+│  └─ websocket.schemas.ts   # Socket.IO event schemas
+├─ ui/
+│  ├─ forms.schemas.ts       # Form validation schemas
+│  ├─ app-state.schemas.ts   # App state schemas
+│  └─ components.schemas.ts  # Component props schemas
+├─ hooks/
+│  └─ hook-types.schemas.ts  # Hook configuration schemas
+└─ shared/
+   ├─ common.schemas.ts      # Shared validation schemas
+   └─ constants.schemas.ts   # Enums và constants schemas
+```
+
+#### Types Folder - Compile-time Types (TypeScript interfaces)
+```typescript
+src/types/
+├─ index.ts                  # Central export của tất cả types
+├─ hooks.ts                  # Hook return types & options interfaces
+├─ components.ts             # Component props interfaces (if needed)
+├─ api.ts                    # Additional API utility types
+├─ utils.ts                  # Utility type definitions
+└─ global.d.ts              # Global type declarations & module extensions
+```
+
+### **Separation of Concerns Rules**
+1. **schemas/ = Runtime validation** với Zod cho data từ external sources
+2. **types/ = Compile-time types** với TypeScript interfaces cho internal structure
+3. **NEVER mix** - schemas export `z.infer<>` types, types export pure interfaces
+4. **Import pattern**: `import type { } from '@/types/*'` và `import { } from '@/schemas/*'`
+
+### **Code Organization Patterns**
+```typescript
+// ✅ CORRECT - Centralized in schemas/
+export const UserSchema = z.object({
+  id: z.string(),
+  name: z.string()
+});
+export type TUser = z.infer<typeof UserSchema>;
+
+// ✅ CORRECT - Centralized in types/
+export interface UseUserReturn {
+  user: TUser | null;
+  loading: boolean;
+  error: Error | null;
+}
+
+// ❌ WRONG - Inline definition
+function useUser(): { user: TUser | null; loading: boolean } { ... }
+```
+
+### **Modern TypeScript Configuration**
+```json
+// tsconfig.json - Enterprise settings
+{
+  "compilerOptions": {
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/schemas/*": ["./src/schemas/*"]
+    }
+  }
+}
+```
+
+### **AI Coding Context Rules**
+- **Always check** existing schemas/types folders before creating inline definitions
+- **Never create** inline interfaces in components, hooks, or utilities
+- **Extract immediately** any inline types to appropriate folder structure
+- **Research latest** TypeScript enterprise patterns before architectural decisions
+- **Follow separation**: Runtime validation (schemas) vs compile-time types (types)
+
+---
 
 ## 3. Backend API Integration với comprehensive endpoints
 
@@ -2143,3 +2236,898 @@ afterAll(() => server.close());
 - ✅ Production-ready authentication
 - ✅ Advanced caching strategies
 - ✅ Professional testing setup
+
+## 14. Modern Library Integration Patterns
+
+### 14.1. React Hook Form v7 + Zod Integration
+
+#### A. Enhanced Form Patterns với React 19
+```tsx
+// ✅ Modern React Hook Form + Zod + React 19 Actions
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useActionState } from 'react';
+import { CreateSessionSchema, type TCreateSession } from '@/schemas/sessions';
+
+// Server Action for form submission
+async function createSessionAction(prevState: any, formData: FormData): Promise<{
+  success?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string[]>;
+}> {
+  try {
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedData = CreateSessionSchema.parse(rawData);
+    
+    const result = await apiClient.sessions.create(validatedData);
+    redirect(`/sessions/${result.id}`);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        error: 'Validation failed',
+        fieldErrors: error.flatten().fieldErrors,
+      };
+    }
+    return { error: 'Failed to create session' };
+  }
+}
+
+// Enhanced form component với comprehensive validation
+export function CreateSessionForm() {
+  const [actionState, formAction, isPending] = useActionState(createSessionAction, null);
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+    reset,
+  } = useForm<TCreateSession>({
+    resolver: zodResolver(CreateSessionSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      settings: {
+        language: 'vi',
+        sensitivity: 'medium',
+        autoStop: true,
+      },
+    },
+  });
+
+  // Sync server-side errors với client-side form state
+  useEffect(() => {
+    if (actionState?.fieldErrors) {
+      Object.entries(actionState.fieldErrors).forEach(([field, errors]) => {
+        setError(field as keyof TCreateSession, {
+          type: 'server',
+          message: errors[0],
+        });
+      });
+    }
+  }, [actionState, setError]);
+
+  return (
+    <form action={formAction} className="space-y-6">
+      <div className="space-y-2">
+        <label htmlFor="name" className="text-sm font-medium">
+          Session Name
+        </label>
+        <input
+          {...register('name')}
+          className={cn(
+            'w-full px-3 py-2 border rounded-md',
+            errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+          )}
+          placeholder="Enter session name"
+        />
+        {errors.name && (
+          <p className="text-sm text-red-600">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="description" className="text-sm font-medium">
+          Description
+        </label>
+        <textarea
+          {...register('description')}
+          rows={4}
+          className={cn(
+            'w-full px-3 py-2 border rounded-md',
+            errors.description ? 'border-red-500' : 'border-gray-300'
+          )}
+          placeholder="Describe the session purpose"
+        />
+        {errors.description && (
+          <p className="text-sm text-red-600">{errors.description.message}</p>
+        )}
+      </div>
+
+      {/* Nested form fields với dot notation */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Language</label>
+          <select {...register('settings.language')} className="w-full px-3 py-2 border rounded-md">
+            <option value="vi">Vietnamese</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Sensitivity</label>
+          <select {...register('settings.sensitivity')} className="w-full px-3 py-2 border rounded-md">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          {...register('settings.autoStop')}
+          className="rounded"
+        />
+        <label className="text-sm">Auto-stop after silence</label>
+      </div>
+
+      {actionState?.error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{actionState.error}</p>
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => reset()}
+          disabled={isPending}
+        >
+          Reset
+        </Button>
+        <Button
+          type="submit"
+          disabled={isPending || isSubmitting}
+        >
+          {isPending ? (
+            <>
+              <LoadingSpinner className="mr-2 h-4 w-4" />
+              Creating...
+            </>
+          ) : (
+            'Create Session'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}
+```
+
+#### B. Advanced Form Patterns
+```tsx
+// ✅ Dynamic form fields với useFieldArray
+import { useFieldArray, Control } from 'react-hook-form';
+
+interface DetectionRulesFormProps {
+  control: Control<TSessionSettings>;
+}
+
+function DetectionRulesForm({ control }: DetectionRulesFormProps) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'detectionRules',
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Detection Rules</h3>
+        <Button
+          type="button"
+          onClick={() => append({ keyword: '', severity: 'medium', action: 'warn' })}
+        >
+          Add Rule
+        </Button>
+      </div>
+
+      {fields.map((field, index) => (
+        <div key={field.id} className="flex items-center space-x-3 p-4 border rounded-lg">
+          <input
+            {...register(`detectionRules.${index}.keyword`)}
+            placeholder="Keyword or phrase"
+            className="flex-1 px-3 py-2 border rounded-md"
+          />
+          <select
+            {...register(`detectionRules.${index}.severity`)}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <select
+            {...register(`detectionRules.${index}.action`)}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value="log">Log Only</option>
+            <option value="warn">Warn User</option>
+            <option value="block">Block Content</option>
+          </select>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => remove(index)}
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ✅ Form validation với custom rules
+const advancedSessionSchema = z.object({
+  name: z.string()
+    .min(3, 'Name must be at least 3 characters')
+    .max(50, 'Name cannot exceed 50 characters')
+    .refine(async (name) => {
+      // Async validation - check if name exists
+      const exists = await apiClient.sessions.checkName(name);
+      return !exists;
+    }, 'Session name already exists'),
+  
+  settings: z.object({
+    maxDuration: z.number()
+      .min(60, 'Minimum duration is 1 minute')
+      .max(3600, 'Maximum duration is 1 hour'),
+    
+    detectionRules: z.array(z.object({
+      keyword: z.string().min(1, 'Keyword required'),
+      severity: z.enum(['low', 'medium', 'high']),
+      action: z.enum(['log', 'warn', 'block']),
+    })).max(10, 'Maximum 10 detection rules allowed'),
+  }),
+  
+  // Cross-field validation
+}).refine((data) => {
+  // Complex validation logic across multiple fields
+  if (data.settings.detectionRules.some(rule => rule.action === 'block') && 
+      data.settings.maxDuration < 300) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Sessions with blocking rules must be at least 5 minutes long',
+  path: ['settings', 'maxDuration'],
+});
+```
+
+### 14.2. Zustand v5 Enhanced Patterns
+
+#### A. Type-safe Store với Subscriptions
+```tsx
+// ✅ Enhanced Zustand store với React 19 integration
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
+
+// Type-safe store interface
+interface AudioState {
+  // Core state
+  isRecording: boolean;
+  audioData: Float32Array | null;
+  volume: number;
+  sensitivity: number;
+  
+  // Session data
+  currentSession: Session | null;
+  transcript: TranscriptSegment[];
+  detections: Detection[];
+  
+  // UI state
+  visualizerTheme: 'default' | 'neon' | 'minimal';
+  showSettings: boolean;
+  
+  // Actions với precise typing
+  actions: {
+    startRecording: () => Promise<void>;
+    stopRecording: () => void;
+    updateAudioData: (data: Float32Array) => void;
+    addTranscriptSegment: (segment: TranscriptSegment) => void;
+    addDetection: (detection: Detection) => void;
+    clearSession: () => void;
+    
+    // Settings actions
+    updateSensitivity: (value: number) => void;
+    changeTheme: (theme: 'default' | 'neon' | 'minimal') => void;
+    toggleSettings: () => void;
+  };
+}
+
+// Enhanced store với middleware composition
+export const useAudioStore = create<AudioState>()(
+  devtools(
+    subscribeWithSelector(
+      persist(
+        (set, get) => ({
+          // Initial state
+          isRecording: false,
+          audioData: null,
+          volume: 0,
+          sensitivity: 0.5,
+          currentSession: null,
+          transcript: [],
+          detections: [],
+          visualizerTheme: 'default',
+          showSettings: false,
+
+          actions: {
+            startRecording: async () => {
+              try {
+                // Complex async operation
+                const sessionId = await apiClient.sessions.create({
+                  name: `Session ${new Date().toLocaleString()}`,
+                  startedAt: new Date(),
+                });
+
+                set({ 
+                  isRecording: true,
+                  currentSession: { id: sessionId, startedAt: new Date() },
+                  transcript: [],
+                  detections: [],
+                }, false, 'audio/startRecording');
+              } catch (error) {
+                console.error('Failed to start recording:', error);
+              }
+            },
+
+            stopRecording: () => {
+              const { currentSession } = get();
+              
+              if (currentSession) {
+                // Finalize session
+                apiClient.sessions.finalize(currentSession.id);
+              }
+
+              set({ 
+                isRecording: false,
+                audioData: null,
+                volume: 0,
+              }, false, 'audio/stopRecording');
+            },
+
+            updateAudioData: (data: Float32Array) => {
+              // Calculate volume from audio data
+              const volume = data.reduce((sum, sample) => sum + Math.abs(sample), 0) / data.length;
+              
+              set({ 
+                audioData: data,
+                volume: Math.min(volume * 10, 1), // Normalize volume
+              }, false, 'audio/updateAudioData');
+            },
+
+            addTranscriptSegment: (segment: TranscriptSegment) => {
+              set((state) => ({
+                transcript: [...state.transcript, segment],
+              }), false, 'audio/addTranscript');
+            },
+
+            addDetection: (detection: Detection) => {
+              set((state) => ({
+                detections: [...state.detections, detection],
+              }), false, 'audio/addDetection');
+            },
+
+            clearSession: () => {
+              set({
+                currentSession: null,
+                transcript: [],
+                detections: [],
+                audioData: null,
+                volume: 0,
+              }, false, 'audio/clearSession');
+            },
+
+            // Settings actions
+            updateSensitivity: (value: number) => {
+              set({ sensitivity: Math.max(0, Math.min(1, value)) }, false, 'settings/updateSensitivity');
+            },
+
+            changeTheme: (theme) => {
+              set({ visualizerTheme: theme }, false, 'settings/changeTheme');
+            },
+
+            toggleSettings: () => {
+              set((state) => ({ showSettings: !state.showSettings }), false, 'ui/toggleSettings');
+            },
+          },
+        }),
+        {
+          name: 'audio-storage',
+          partialize: (state) => ({
+            // Only persist settings, not session data
+            sensitivity: state.sensitivity,
+            visualizerTheme: state.visualizerTheme,
+          }),
+        }
+      )
+    ),
+    { name: 'AudioStore' }
+  )
+);
+
+// Selector hooks for performance
+export const useIsRecording = () => useAudioStore((state) => state.isRecording);
+export const useAudioData = () => useAudioStore((state) => state.audioData);
+export const useCurrentSession = () => useAudioStore((state) => state.currentSession);
+export const useTranscript = () => useAudioStore((state) => state.transcript);
+export const useDetections = () => useAudioStore((state) => state.detections);
+export const useAudioActions = () => useAudioStore((state) => state.actions);
+
+// Advanced selector with computed values
+export const useAudioStats = () => useAudioStore((state) => ({
+  totalSegments: state.transcript.length,
+  totalDetections: state.detections.length,
+  highPriorityDetections: state.detections.filter(d => d.severity === 'high').length,
+  sessionDuration: state.currentSession 
+    ? Date.now() - state.currentSession.startedAt.getTime()
+    : 0,
+}));
+
+// Subscription hook for side effects
+export const useAudioSubscriptions = () => {
+  useEffect(() => {
+    // Subscribe to recording state changes
+    const unsubscribeRecording = useAudioStore.subscribe(
+      (state) => state.isRecording,
+      (isRecording, prevRecording) => {
+        if (isRecording && !prevRecording) {
+          // Recording started - setup audio capture
+          console.log('🎙️ Recording started');
+        } else if (!isRecording && prevRecording) {
+          // Recording stopped - cleanup
+          console.log('⏹️ Recording stopped');
+        }
+      }
+    );
+
+    // Subscribe to new detections
+    const unsubscribeDetections = useAudioStore.subscribe(
+      (state) => state.detections,
+      (detections, prevDetections) => {
+        const newDetections = detections.slice(prevDetections.length);
+        newDetections.forEach((detection) => {
+          if (detection.severity === 'high') {
+            // Show critical alert
+            toast.error(`Critical content detected: ${detection.snippet}`);
+          }
+        });
+      }
+    );
+
+    return () => {
+      unsubscribeRecording();
+      unsubscribeDetections();
+    };
+  }, []);
+};
+```
+
+#### B. Store Composition Pattern
+```tsx
+// ✅ Multiple specialized stores với communication
+interface UIState {
+  theme: 'light' | 'dark';
+  sidebarOpen: boolean;
+  activeModal: string | null;
+  notifications: Notification[];
+  
+  actions: {
+    setTheme: (theme: 'light' | 'dark') => void;
+    toggleSidebar: () => void;
+    openModal: (modalId: string) => void;
+    closeModal: () => void;
+    addNotification: (notification: Omit<Notification, 'id'>) => void;
+    removeNotification: (id: string) => void;
+  };
+}
+
+export const useUIStore = create<UIState>()((set) => ({
+  theme: 'light',
+  sidebarOpen: true,
+  activeModal: null,
+  notifications: [],
+  
+  actions: {
+    setTheme: (theme) => set({ theme }),
+    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+    openModal: (modalId) => set({ activeModal: modalId }),
+    closeModal: () => set({ activeModal: null }),
+    
+    addNotification: (notification) => set((state) => ({
+      notifications: [
+        ...state.notifications,
+        { ...notification, id: crypto.randomUUID() }
+      ],
+    })),
+    
+    removeNotification: (id) => set((state) => ({
+      notifications: state.notifications.filter(n => n.id !== id),
+    })),
+  },
+}));
+
+// Cross-store communication
+export const useCombinedStore = () => {
+  const audioStore = useAudioStore();
+  const uiStore = useUIStore();
+  
+  // Combined actions that affect multiple stores
+  const combinedActions = useMemo(() => ({
+    startSession: async () => {
+      await audioStore.actions.startRecording();
+      uiStore.actions.addNotification({
+        type: 'success',
+        message: 'Recording session started',
+        duration: 3000,
+      });
+    },
+    
+    stopSession: () => {
+      audioStore.actions.stopRecording();
+      uiStore.actions.openModal('session-summary');
+    },
+  }), [audioStore.actions, uiStore.actions]);
+  
+  return {
+    audio: audioStore,
+    ui: uiStore,
+    actions: combinedActions,
+  };
+};
+```
+
+### 14.3. Framer Motion v12 Performance Optimizations
+
+#### A. Hardware-Accelerated Animations
+```tsx
+// ✅ Optimized motion components với independent transforms
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+
+// High-performance audio visualizer animation
+export function OptimizedAudioVisualizer({ audioData, isActive }: AudioVisualizerProps) {
+  const scale = useMotionValue(1);
+  const springScale = useSpring(scale, { stiffness: 300, damping: 30 });
+  const opacity = useTransform(springScale, [0.8, 1.2], [0.6, 1]);
+
+  useEffect(() => {
+    if (isActive && audioData) {
+      const avgAmplitude = audioData.reduce((sum, val) => sum + Math.abs(val), 0) / audioData.length;
+      scale.set(1 + avgAmplitude * 0.3); // Scale based on audio amplitude
+    } else {
+      scale.set(1);
+    }
+  }, [audioData, isActive, scale]);
+
+  return (
+    <motion.div
+      className="audio-visualizer"
+      style={{
+        scale: springScale,
+        opacity,
+      }}
+      initial={{ rotate: 0 }}
+      animate={{ 
+        rotate: isActive ? 360 : 0,
+      }}
+      transition={{
+        rotate: {
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear",
+        },
+      }}
+    >
+      <svg width={300} height={300}>
+        {audioData?.map((amplitude, index) => {
+          const angle = (index / audioData.length) * Math.PI * 2;
+          const radius = 80 + amplitude * 40;
+          
+          return (
+            <motion.line
+              key={index}
+              x1={150}
+              y1={150}
+              x2={150 + Math.cos(angle) * radius}
+              y2={150 + Math.sin(angle) * radius}
+              stroke="currentColor"
+              strokeWidth={2}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: amplitude }}
+              transition={{
+                pathLength: { duration: 0.1 },
+                opacity: { duration: 0.05 },
+              }}
+            />
+          );
+        })}
+      </svg>
+    </motion.div>
+  );
+}
+
+// ✅ Layout animations với shared elements
+const MotionCard = motion.create('div'); // v12 syntax
+
+export function SessionCard({ session, isExpanded, onToggle }: SessionCardProps) {
+  return (
+    <MotionCard
+      layout // Efficient layout animations
+      layoutId={`session-${session.id}`} // Shared element transitions
+      className="session-card"
+      whileHover={{ 
+        y: -4,
+        transition: { type: "spring", stiffness: 300 } 
+      }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onToggle}
+    >
+      <motion.div layout="position" className="card-header">
+        <h3>{session.name}</h3>
+        <motion.div
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <ChevronDownIcon />
+        </motion.div>
+      </motion.div>
+      
+      <AnimatePresence mode="wait">
+        {isExpanded && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <SessionDetails session={session} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </MotionCard>
+  );
+}
+```
+
+#### B. Gesture Recognition và Touch Interactions
+```tsx
+// ✅ Advanced gesture handling
+import { motion, useDragControls, PanInfo } from 'framer-motion';
+
+export function SwipeableTranscript({ 
+  segments, 
+  onSwipeDelete 
+}: SwipeableTranscriptProps) {
+  const dragControls = useDragControls();
+
+  const handleDragEnd = (event: MouseEvent | TouchEvent, info: PanInfo) => {
+    const offset = info.offset.x;
+    const velocity = info.velocity.x;
+    
+    // Swipe left to delete (velocity-based detection)
+    if (offset < -100 || velocity < -500) {
+      onSwipeDelete();
+    }
+  };
+
+  return (
+    <div className="transcript-container">
+      {segments.map((segment) => (
+        <motion.div
+          key={segment.id}
+          className="transcript-segment"
+          drag="x"
+          dragConstraints={{ left: -200, right: 50 }}
+          dragElastic={0.1}
+          onDragEnd={handleDragEnd}
+          whileDrag={{ 
+            backgroundColor: "rgba(239, 68, 68, 0.1)",
+            scale: 1.02,
+          }}
+          layout
+        >
+          <div className="segment-content">
+            <p>{segment.text}</p>
+            <div className="segment-actions">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="delete-button"
+              >
+                <TrashIcon />
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ✅ Performance monitoring và optimization
+export function useMotionPerformance() {
+  useEffect(() => {
+    // Track animation performance
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (entry.entryType === 'measure' && entry.name.includes('motion')) {
+          console.log(`Animation ${entry.name}: ${entry.duration}ms`);
+          if (entry.duration > 16.67) { // > 60fps threshold
+            console.warn('Slow animation detected:', entry.name);
+          }
+        }
+      });
+    });
+    
+    observer.observe({ entryTypes: ['measure'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Reduce motion preference
+  const prefersReducedMotion = useReducedMotion();
+  
+  return {
+    shouldAnimate: !prefersReducedMotion,
+    animationConfig: prefersReducedMotion 
+      ? { duration: 0 }
+      : { type: "spring", stiffness: 300, damping: 30 },
+  };
+}
+```
+
+### 14.4. Bundle Analysis và Performance Optimizations
+
+#### A. Modern Bundle Splitting Strategy
+```typescript
+// ✅ Optimal chunk splitting với Vite
+// vite.config.ts
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - stable code that changes infrequently
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-router': ['@tanstack/react-router', '@tanstack/react-query'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-toast'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers'],
+          'vendor-motion': ['framer-motion'],
+          
+          // Feature-based chunks
+          'audio-processing': ['wavesurfer.js', 'react-audio-visualizer-pro'],
+          'charts': ['recharts', 'd3-scale', 'd3-shape'],
+          'utils': ['date-fns', 'lodash-es', 'clsx'],
+        },
+      },
+    },
+    
+    // Optimize chunk size thresholds
+    chunkSizeWarningLimit: 500,
+    
+    // Enable advanced minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+  },
+  
+  // Tree-shaking optimizations
+  define: {
+    __DEV__: false, // Remove development code
+  },
+});
+
+// ✅ Library usage analysis results
+const LIBRARY_ANALYSIS = {
+  essential: {
+    'react': '~45KB (core framework)',
+    '@tanstack/react-query': '~15KB (server state)',
+    '@tanstack/react-router': '~12KB (routing)',
+    'zustand': '~2KB (client state)',
+    '@radix-ui/*': '~25KB total (accessibility)',
+  },
+  
+  specialized: {
+    'framer-motion': '~35KB (animations - lazy load)',
+    'react-hook-form': '~8KB (forms - route-level)',
+    'wavesurfer.js': '~45KB (audio - /live route only)',
+    'recharts': '~85KB (charts - /dashboard route only)',
+  },
+  
+  utility: {
+    'date-fns': '~20KB (cherry-pick functions)',
+    'clsx': '~1KB (className utility)',
+    'socket.io-client': '~15KB (real-time)',
+  },
+  
+  recommendations: {
+    keep: ['All essential libraries are optimally sized'],
+    optimize: ['Lazy load framer-motion', 'Tree-shake date-fns', 'Code-split chart components'],
+    replace: ['Consider replacing recharts with lighter alternative if not using advanced features'],
+  },
+} as const;
+```
+
+#### B. Runtime Performance Monitoring
+```tsx
+// ✅ Performance monitoring hook
+export function usePerformanceMonitoring() {
+  const metricsRef = useRef<PerformanceMetrics>({
+    renderTime: [],
+    bundleSize: 0,
+    memoryUsage: [],
+  });
+
+  useEffect(() => {
+    // Monitor component render performance
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (entry.entryType === 'navigation') {
+          console.log('Page Load Time:', entry.duration);
+        }
+        
+        if (entry.entryType === 'resource' && entry.name.includes('.js')) {
+          metricsRef.current.bundleSize += entry.transferSize || 0;
+        }
+      });
+    });
+
+    observer.observe({ entryTypes: ['navigation', 'resource', 'measure'] });
+    
+    // Memory usage monitoring
+    const memoryInterval = setInterval(() => {
+      if ('memory' in performance) {
+        const memory = (performance as any).memory;
+        metricsRef.current.memoryUsage.push({
+          used: memory.usedJSHeapSize,
+          total: memory.totalJSHeapSize,
+          limit: memory.jsHeapSizeLimit,
+          timestamp: Date.now(),
+        });
+      }
+    }, 5000);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(memoryInterval);
+    };
+  }, []);
+
+  const reportMetrics = useCallback(() => {
+    console.table({
+      'Bundle Size (KB)': Math.round(metricsRef.current.bundleSize / 1024),
+      'Avg Render Time (ms)': metricsRef.current.renderTime.length 
+        ? Math.round(metricsRef.current.renderTime.reduce((a, b) => a + b) / metricsRef.current.renderTime.length)
+        : 0,
+      'Memory Usage (MB)': metricsRef.current.memoryUsage.length
+        ? Math.round(metricsRef.current.memoryUsage[metricsRef.current.memoryUsage.length - 1].used / 1024 / 1024)
+        : 0,
+    });
+  }, []);
+
+  return { reportMetrics };
+}
