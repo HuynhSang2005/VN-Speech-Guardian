@@ -1,12 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    // React 19 plugin với enhanced features
+    // TanStack Router plugin - phải đặt trước React plugin
+    tanstackRouter({
+      target: 'react',
+      autoCodeSplitting: true,
+      // Tự động tạo route tree từ file structure
+      // Generated file sẽ là src/routeTree.gen.ts
+    }),
+    
+    // React 19 plugin với enhanced features - updated for @vitejs/plugin-react 5.0.3
     react({
       babel: {
         plugins: [
@@ -14,9 +23,9 @@ export default defineConfig({
           // ['babel-plugin-react-compiler', {}], // uncomment khi stable
         ],
       },
-      // Fast refresh with error overlay
-      fastRefresh: true,
-      jsxImportSource: 'react',
+      // React 19 uses automatic JSX runtime by default
+      // fastRefresh option deprecated in @vitejs/plugin-react 5.0.3
+      jsxRuntime: 'automatic',
     }),
     
     // TypeScript path mapping integration - Vietnamese dev experience
@@ -147,7 +156,7 @@ export default defineConfig({
   // AudioWorklet support cho speech processing
   worker: {
     format: 'es',
-    plugins: [tsconfigPaths()],
+    plugins: () => [tsconfigPaths()],
   },
 
   // Environment variables prefix

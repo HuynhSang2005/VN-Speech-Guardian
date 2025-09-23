@@ -7,11 +7,11 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 import type { 
-  TDetectionLabel, 
-  IAppError, 
-  TErrorCode,
-  IAudioConfig 
-} from '@/types'
+  TDetectionLabel,
+  TAudioConfig,
+  TAppError,
+  TErrorCode
+} from '@/schemas'
 import { 
   ERROR_MESSAGES, 
   AUDIO_CONFIG,
@@ -77,9 +77,12 @@ export function float32ToPCM16(float32Array: Float32Array): Int16Array {
   const pcm16 = new Int16Array(float32Array.length)
   
   for (let i = 0; i < float32Array.length; i++) {
-    // Clamp to [-1, 1] range and convert to 16-bit
-    const sample = Math.max(-1, Math.min(1, float32Array[i]))
-    pcm16[i] = sample * 0x7FFF
+    const value = float32Array[i]
+    if (value !== undefined) {
+      // Clamp to [-1, 1] range and convert to 16-bit
+      const sample = Math.max(-1, Math.min(1, value))
+      pcm16[i] = sample * 0x7FFF
+    }
   }
   
   return pcm16
@@ -93,7 +96,10 @@ export function calculateAudioEnergy(audioData: Float32Array): number {
   let sum = 0
   
   for (let i = 0; i < audioData.length; i++) {
-    sum += audioData[i] * audioData[i]
+    const value = audioData[i]
+    if (value !== undefined) {
+      sum += value * value
+    }
   }
   
   const rms = Math.sqrt(sum / audioData.length)
@@ -106,7 +112,7 @@ export function calculateAudioEnergy(audioData: Float32Array): number {
  * Validates audio configuration
  * Kiểm tra tính hợp lệ của audio settings
  */
-export function validateAudioConfig(config: Partial<IAudioConfig>): IAudioConfig {
+export function validateAudioConfig(config: Partial<TAudioConfig>): TAudioConfig {
   return {
     sampleRate: config.sampleRate || AUDIO_CONFIG.SAMPLE_RATES.SPEECH_RECOGNITION,
     channels: config.channels || AUDIO_CONFIG.CHANNELS,
@@ -167,7 +173,7 @@ export function applyHysteresis(
   // Return most frequent label
   return Object.entries(counts)
     .reduce((max, [label, count]) => 
-      count > (counts[max as TDetectionLabel] || 0) ? label as TDetectionLabel : max,
+      count > (counts[max] || 0) ? label as TDetectionLabel : max,
       'SAFE' as TDetectionLabel
     )
 }
@@ -205,15 +211,23 @@ export function getDetectionMessage(
 export function createAppError(
   code: TErrorCode,
   message?: string,
-  context?: Record<string, any>
-): IAppError {
-  const error = new Error(message || ERROR_MESSAGES[code]) as IAppError
+  context?: Record<string, any>,
+  sessionId?: string
+): TAppError {
+  const baseError = new Error(message || ERROR_MESSAGES[code])
   
-  error.code = code
-  error.context = context
-  error.timestamp = new Date()
+  // Extend the Error object with additional properties
+  const appError = baseError as TAppError
+  appError.code = code
+  appError.timestamp = new Date()
+  if (context !== undefined) {
+    appError.context = context
+  }
+  if (sessionId !== undefined) {
+    appError.sessionId = sessionId
+  }
   
-  return error
+  return appError
 }
 
 /**
@@ -252,7 +266,7 @@ export function isRetryableError(error: unknown): boolean {
     
     return retryableErrors.some(retryable => 
       error.message.includes(retryable) || 
-      (error as IAppError).code?.includes(retryable)
+      (error as TAppError).code?.includes(retryable)
     )
   }
   
@@ -399,10 +413,10 @@ export function truncateText(text: string, maxLength: number): string {
   const lastSpace = truncated.lastIndexOf(' ')
   
   if (lastSpace > 0 && lastSpace > maxLength * 0.7) {
-    return truncated.slice(0, lastSpace) + '...'
+    return `${truncated.slice(0, lastSpace)  }...`
   }
   
-  return truncated + '...'
+  return `${truncated  }...`
 }
 
 // =============================================================================
@@ -492,13 +506,13 @@ export function getUserAgent(): {
   
   if (ua.includes('Chrome')) {
     browser = 'Chrome'
-    version = ua.match(/Chrome\/(\d+)/)?.[1] || 'Unknown'
+    version = (/Chrome\/(\d+)/.exec(ua))?.[1] || 'Unknown'
   } else if (ua.includes('Firefox')) {
     browser = 'Firefox' 
-    version = ua.match(/Firefox\/(\d+)/)?.[1] || 'Unknown'
+    version = (/Firefox\/(\d+)/.exec(ua))?.[1] || 'Unknown'
   } else if (ua.includes('Safari')) {
     browser = 'Safari'
-    version = ua.match(/Version\/(\d+)/)?.[1] || 'Unknown'
+    version = (/Version\/(\d+)/.exec(ua))?.[1] || 'Unknown'
   }
   
   // OS detection

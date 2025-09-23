@@ -11,6 +11,15 @@ export default {
   ],
   
   theme: {
+    // Responsive breakpoints
+    screens: {
+      'sm': '640px',
+      'md': '768px', 
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+    },
+    
     // Custom font family cho Vietnamese text
     fontFamily: {
       sans: [
@@ -230,7 +239,7 @@ export default {
     }),
 
     // Custom plugin cho audio-specific utilities
-    function({ addUtilities, theme }) {
+    function({ addUtilities, theme }: { addUtilities: any; theme: any }) {
       const audioUtilities = {
         '.audio-visualizer': {
           background: `linear-gradient(135deg, ${theme('colors.primary.500')}, ${theme('colors.primary.700')})`,
@@ -264,12 +273,4 @@ export default {
   // Dark mode configuration
   darkMode: 'class',
   
-  // Responsive breakpoints
-  screens: {
-    'sm': '640px',
-    'md': '768px', 
-    'lg': '1024px',
-    'xl': '1280px',
-    '2xl': '1536px',
-  },
 } satisfies Config
