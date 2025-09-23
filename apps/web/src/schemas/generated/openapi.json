@@ -1,0 +1,650 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
+    "/api/auth/clerk": {
+      "post": {
+        "description": "Send Clerk JWT either in request body or Authorization header. User will be created/synced in database.",
+        "operationId": "AuthController_verifyClerkToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully verified token and synced user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSwaggerDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired Clerk token"
+          }
+        },
+        "summary": "Verify Clerk token and sync user to database",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "description": "Returns current authenticated user information",
+        "operationId": "AuthController_getCurrentUser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current user information"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user info",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/sessions": {
+      "post": {
+        "operationId": "SessionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCreateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new session",
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "get": {
+        "operationId": "SessionsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "example": 1,
+              "type": "string"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "example": 10,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List sessions (paged)",
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/api/sessions/{id}": {
+      "get": {
+        "operationId": "SessionsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Session id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get session detail",
+        "tags": [
+          "Sessions"
+        ]
+      },
+      "delete": {
+        "operationId": "SessionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Session id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a session",
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/api/sessions/{id}/transcripts": {
+      "get": {
+        "operationId": "SessionsController_transcripts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Session id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of transcripts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List transcripts for a session",
+        "tags": [
+          "Sessions"
+        ]
+      }
+    },
+    "/api/stats/overview": {
+      "get": {
+        "operationId": "StatsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Overview stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatsOverviewResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Stats"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "VN Speech Guardian API",
+    "description": "Speech-to-Text with toxicity detection for Vietnamese",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "UserSwaggerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "clerkId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clerkId",
+          "email",
+          "role"
+        ]
+      },
+      "TranscriptDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "t_01",
+            "description": "Transcript id"
+          },
+          "sessionId": {
+            "type": "string",
+            "example": "s_01",
+            "description": "Session id this transcript belongs to"
+          },
+          "segIdx": {
+            "type": "number",
+            "example": 0,
+            "description": "Segment index (order within session)"
+          },
+          "text": {
+            "type": "string",
+            "example": "Xin chào",
+            "description": "Recognized text for the segment"
+          },
+          "startMs": {
+            "type": "number",
+            "example": 0,
+            "description": "Start time in milliseconds"
+          },
+          "endMs": {
+            "type": "number",
+            "example": 1200,
+            "description": "End time in milliseconds"
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "segIdx",
+          "text",
+          "startMs",
+          "endMs"
+        ]
+      },
+      "DetectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cl1n34bleid",
+            "description": "Detection id"
+          },
+          "sessionId": {
+            "type": "string",
+            "example": "sess_123",
+            "description": "Related session id"
+          },
+          "transcriptId": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Related transcript id (may be null)"
+          },
+          "label": {
+            "type": "string",
+            "example": "OFFENSIVE",
+            "enum": [
+              "CLEAN",
+              "OFFENSIVE",
+              "HATE"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "example": 0.92,
+            "description": "Confidence score (0..1)"
+          },
+          "startMs": {
+            "type": "number",
+            "example": 120,
+            "description": "Start time in milliseconds"
+          },
+          "endMs": {
+            "type": "number",
+            "example": 800,
+            "description": "End time in milliseconds"
+          },
+          "snippet": {
+            "type": "string",
+            "example": "some bad words",
+            "description": "Snippet from transcript"
+          },
+          "severity": {
+            "type": "string",
+            "example": "HIGH",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2025-09-20T18:00:16.781Z",
+            "description": "Timestamp when detection was created"
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "transcriptId",
+          "label",
+          "score",
+          "startMs",
+          "endMs",
+          "snippet",
+          "severity",
+          "createdAt"
+        ]
+      },
+      "SessionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "s_123",
+            "description": "Session id"
+          },
+          "userId": {
+            "type": "string",
+            "example": "u_123",
+            "description": "User id owning this session"
+          },
+          "device": {
+            "type": "string",
+            "example": "web"
+          },
+          "lang": {
+            "type": "string",
+            "example": "vi"
+          },
+          "startedAt": {
+            "type": "string",
+            "example": "2025-09-15T00:00:00.000Z"
+          },
+          "endedAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "lang",
+          "startedAt",
+          "endedAt"
+        ]
+      },
+      "SessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionDto"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "SessionListItemDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "SessionListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionListItemDto"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "SessionCreateResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionDto"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "TranscriptListItemDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "TranscriptListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TranscriptListItemDto"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CreateSessionDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "lang": {
+            "default": "vi",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "StatsOverviewDto": {
+        "type": "object",
+        "properties": {
+          "totalSessions": {
+            "type": "number",
+            "example": 10
+          },
+          "totalDetections": {
+            "type": "number",
+            "example": 20
+          },
+          "toxicPercent": {
+            "type": "number",
+            "example": 30
+          }
+        },
+        "required": [
+          "totalSessions",
+          "totalDetections",
+          "toxicPercent"
+        ]
+      },
+      "StatsOverviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatsOverviewDto"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      }
+    }
+  }
+}

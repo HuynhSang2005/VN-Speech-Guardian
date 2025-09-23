@@ -1,20 +1,20 @@
 /**
  * Global type definitions cho VN Speech Guardian Frontend
- * Tích hợp với React 19, TanStack Router, Clerk, và Audio APIs
+ * Central export of all TypeScript types and interfaces
  */
 
 // =============================================================================
-// React 19 & TanStack Router Types
+// Central Type Exports - Follow enterprise patterns
 // =============================================================================
 
 import type { ReactNode } from 'react'
-import type { Router } from '@tanstack/react-router'
 
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-}
+// Export all type categories
+export * from './hooks'
+export * from './components'
+export * from './utils'
+
+// Remove unused router import and module declaration since we don't have router defined
 
 // =============================================================================
 // Audio Processing Types - Speech-to-Text Core
@@ -285,18 +285,15 @@ export type TArrayElement<T> = T extends (infer U)[] ? U : never
 // Environment Variables Types
 // =============================================================================
 
-export interface ImportMetaEnv {
-  readonly VITE_CLERK_PUBLISHABLE_KEY: string
-  readonly VITE_API_BASE_URL: string
-  readonly VITE_WS_URL: string
-  readonly VITE_SENTRY_DSN?: string
-  readonly VITE_GA_MEASUREMENT_ID?: string
-  readonly VITE_ENVIRONMENT: 'development' | 'staging' | 'production'
-}
-
+// Extend Vite's existing ImportMetaEnv interface
 declare global {
-  interface ImportMeta {
-    readonly env: ImportMetaEnv
+  interface ImportMetaEnv {
+    readonly VITE_CLERK_PUBLISHABLE_KEY: string
+    readonly VITE_API_BASE_URL: string
+    readonly VITE_WS_URL: string
+    readonly VITE_SENTRY_DSN?: string
+    readonly VITE_GA_MEASUREMENT_ID?: string
+    readonly VITE_ENVIRONMENT: 'development' | 'staging' | 'production'
   }
 }
 
@@ -323,8 +320,6 @@ declare global {
       name: string,
       processor: new () => AudioWorkletProcessor
     ) => void
-    AudioWorkletProcessor: {
-      new (): AudioWorkletProcessor
-    }
+    AudioWorkletProcessor: new () => AudioWorkletProcessor
   }
 }
