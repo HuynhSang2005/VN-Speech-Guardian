@@ -12,6 +12,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ClerkProvider } from '@clerk/clerk-react'
 
 import { router } from './router'
+import { clerkAppearance } from './lib/clerk-appearance'
 import './index.css'
 
 // Query Client configuration với Vietnamese-friendly defaults
@@ -55,7 +56,10 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <ClerkProvider publishableKey={clerkPublishableKey}>
+    <ClerkProvider 
+      publishableKey={clerkPublishableKey}
+      appearance={clerkAppearance}
+    >
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
         {/* DevTools chỉ hiển thị trong development */}
