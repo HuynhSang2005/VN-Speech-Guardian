@@ -10,9 +10,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/ready": {
@@ -24,9 +22,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/metrics": {
@@ -38,9 +34,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Metrics"
-        ]
+        "tags": ["Metrics"]
       }
     },
     "/api/auth/clerk": {
@@ -78,9 +72,7 @@
           }
         },
         "summary": "Verify Clerk token and sync user to database",
-        "tags": [
-          "Authentication"
-        ]
+        "tags": ["Authentication"]
       }
     },
     "/api/auth/me": {
@@ -99,9 +91,7 @@
           }
         ],
         "summary": "Get current user info",
-        "tags": [
-          "Authentication"
-        ]
+        "tags": ["Authentication"]
       }
     },
     "/api/sessions": {
@@ -131,9 +121,7 @@
           }
         },
         "summary": "Create a new session",
-        "tags": [
-          "Sessions"
-        ]
+        "tags": ["Sessions"]
       },
       "get": {
         "operationId": "SessionsController_list",
@@ -172,9 +160,7 @@
           }
         },
         "summary": "List sessions (paged)",
-        "tags": [
-          "Sessions"
-        ]
+        "tags": ["Sessions"]
       }
     },
     "/api/sessions/{id}": {
@@ -207,9 +193,7 @@
           }
         },
         "summary": "Get session detail",
-        "tags": [
-          "Sessions"
-        ]
+        "tags": ["Sessions"]
       },
       "delete": {
         "operationId": "SessionsController_remove",
@@ -230,9 +214,7 @@
           }
         },
         "summary": "Delete a session",
-        "tags": [
-          "Sessions"
-        ]
+        "tags": ["Sessions"]
       }
     },
     "/api/sessions/{id}/transcripts": {
@@ -262,9 +244,7 @@
           }
         },
         "summary": "List transcripts for a session",
-        "tags": [
-          "Sessions"
-        ]
+        "tags": ["Sessions"]
       }
     },
     "/api/stats/overview": {
@@ -283,9 +263,7 @@
             }
           }
         },
-        "tags": [
-          "Stats"
-        ]
+        "tags": ["Stats"]
       }
     }
   },
@@ -322,12 +300,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "clerkId",
-          "email",
-          "role"
-        ]
+        "required": ["id", "clerkId", "email", "role"]
       },
       "TranscriptDto": {
         "type": "object",
@@ -363,14 +336,7 @@
             "description": "End time in milliseconds"
           }
         },
-        "required": [
-          "id",
-          "sessionId",
-          "segIdx",
-          "text",
-          "startMs",
-          "endMs"
-        ]
+        "required": ["id", "sessionId", "segIdx", "text", "startMs", "endMs"]
       },
       "DetectionDto": {
         "type": "object",
@@ -394,11 +360,7 @@
           "label": {
             "type": "string",
             "example": "OFFENSIVE",
-            "enum": [
-              "CLEAN",
-              "OFFENSIVE",
-              "HATE"
-            ]
+            "enum": ["CLEAN", "OFFENSIVE", "HATE"]
           },
           "score": {
             "type": "number",
@@ -423,11 +385,7 @@
           "severity": {
             "type": "string",
             "example": "HIGH",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH"
-            ]
+            "enum": ["LOW", "MEDIUM", "HIGH"]
           },
           "createdAt": {
             "type": "string",
@@ -479,13 +437,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "userId",
-          "lang",
-          "startedAt",
-          "endedAt"
-        ]
+        "required": ["id", "userId", "lang", "startedAt", "endedAt"]
       },
       "SessionResponseDto": {
         "type": "object",
@@ -498,10 +450,7 @@
             "$ref": "#/components/schemas/SessionDto"
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       },
       "SessionListItemDto": {
         "type": "object",
@@ -517,10 +466,7 @@
             "example": 0
           }
         },
-        "required": [
-          "items",
-          "total"
-        ]
+        "required": ["items", "total"]
       },
       "SessionListResponseDto": {
         "type": "object",
@@ -533,10 +479,7 @@
             "$ref": "#/components/schemas/SessionListItemDto"
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       },
       "SessionCreateResponseDto": {
         "type": "object",
@@ -549,10 +492,7 @@
             "$ref": "#/components/schemas/SessionDto"
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       },
       "TranscriptListItemDto": {
         "type": "object",
@@ -568,10 +508,7 @@
             "example": 0
           }
         },
-        "required": [
-          "items",
-          "total"
-        ]
+        "required": ["items", "total"]
       },
       "TranscriptListResponseDto": {
         "type": "object",
@@ -584,10 +521,7 @@
             "$ref": "#/components/schemas/TranscriptListItemDto"
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       },
       "CreateSessionDto": {
         "type": "object",
@@ -603,9 +537,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "userId"
-        ]
+        "required": ["userId"]
       },
       "StatsOverviewDto": {
         "type": "object",
@@ -623,11 +555,7 @@
             "example": 30
           }
         },
-        "required": [
-          "totalSessions",
-          "totalDetections",
-          "toxicPercent"
-        ]
+        "required": ["totalSessions", "totalDetections", "toxicPercent"]
       },
       "StatsOverviewResponseDto": {
         "type": "object",
@@ -640,10 +568,7 @@
             "$ref": "#/components/schemas/StatsOverviewDto"
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       }
     }
   }
