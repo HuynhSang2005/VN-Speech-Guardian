@@ -6,6 +6,20 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
+// Clerk token provider function type
+type TokenProvider = () => Promise<string | null>
+
+// Global token provider - will be set by auth hook
+let globalTokenProvider: TokenProvider | null = null
+
+/**
+ * Set global token provider function
+ * Called by useAuth hook to provide token access
+ */
+export const setTokenProvider = (provider: TokenProvider): void => {
+  globalTokenProvider = provider
+}
+
 // Create Axios instance với professional configuration
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
@@ -21,9 +35,13 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      // TODO: Implement Clerk JWT injection trong P22
-      // const { useAuth } = await import('@clerk/clerk-react');
-      // Get token từ Clerk context và inject vào headers
+      // Inject Clerk JWT token
+      if (globalTokenProvider) {
+        const token = await globalTokenProvider()
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      }
       
       // Add request ID for tracing
       config.headers['X-Request-ID'] = crypto.randomUUID();
