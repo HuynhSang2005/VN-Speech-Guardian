@@ -104,7 +104,9 @@ export const useAudioStore = create<AudioStore>()(
       },
       
       updateAudioData: (data: Float32Array) => {
-        const avgAmplitude = data.reduce((sum, val) => sum + Math.abs(val), 0) / data.length;
+        const avgAmplitude = data.length > 0 
+          ? data.reduce((sum, val) => sum + Math.abs(val), 0) / data.length
+          : 0;
         const volume = Math.min(avgAmplitude * 5, 1);
         
         set({ 
