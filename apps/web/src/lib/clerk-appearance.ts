@@ -85,12 +85,12 @@ export const clerkAppearance: Appearance = {
     
     // Border colors
     colorBorder: vnSpeechGuardianColors.border,
-    colorBorderFocus: vnSpeechGuardianColors.primary,
+    // colorBorderFocus: vnSpeechGuardianColors.primary, // Property doesn't exist in Variables type
     
     // Typography
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.normal,
+    // fontWeight: 400, // Temporarily commented due to FontWeightScale type compatibility
     
     // Border radius - modern rounded corners
     borderRadius: '0.375rem', // 6px - subtle rounded
@@ -297,7 +297,6 @@ export const clerkAppearanceDark: Appearance = {
       backgroundColor: vnSpeechGuardianColors.dark,
     },
     card: {
-      ...clerkAppearance.elements!.card,
       backgroundColor: '#374151', // Gray-700
       borderColor: '#4B5563', // Gray-600
     },

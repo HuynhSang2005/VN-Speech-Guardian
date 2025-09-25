@@ -17,5 +17,4 @@ export {
   useDebouncedState 
 } from './use-debounce';
 
-// Types export
-export type * from './types';
+// Types are exported from /src/types/ folder

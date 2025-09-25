@@ -9,17 +9,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { 
-  TrendingUp, 
-  TrendingDown, 
   Users, 
   Shield, 
   AlertTriangle, 
   CheckCircle,
   Activity,
-  Clock,
-  BarChart3
+  Clock
 } from 'lucide-react'
-import type { DashboardStats, RecentActivity, MetricCardProps, ActivityItemProps } from '@/types/components'
+import type { DashboardStats, RecentActivity } from '@/types/components'
+import { AnalyticsChart, FilterControls, DataTable } from '@/components/ui/enhanced-dashboard'
+import { MetricCard } from '@/components/ui/enhanced-card'
 
 // Mock data function - sẽ thay bằng API call thực tế
 const fetchDashboardData = async (): Promise<DashboardStats> => {
@@ -71,103 +70,61 @@ const fetchRecentActivity = async (): Promise<RecentActivity[]> => {
   ]
 }
 
-// Component cho metric card
-function MetricCard({ 
+// Enhanced P29 MetricCard wrapper for dashboard compatibility
+function DashboardMetricCard({ 
   title, 
   value, 
   unit, 
   trend, 
-  icon: Icon,
+  icon,
   color = 'blue'
 }: {
   title: string
   value: string | number
   unit?: string
   trend?: number
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ReactNode
   color?: 'blue' | 'green' | 'red' | 'yellow'
 }) {
-  const colorClasses = {
-    blue: 'bg-blue-500 text-blue-50',
-    green: 'bg-green-500 text-green-50', 
-    red: 'bg-red-500 text-red-50',
-    yellow: 'bg-yellow-500 text-yellow-50'
+  // Map old color system to new status system
+  const statusMap = {
+    'blue': 'default' as const,
+    'green': 'success' as const,
+    'red': 'danger' as const,
+    'yellow': 'warning' as const
   }
 
-  const trendColorClasses = {
-    positive: 'text-green-600 bg-green-50',
-    negative: 'text-red-600 bg-red-50'
-  }
+  // Format trend data for P29 MetricCard
+  const trendData = trend !== undefined ? {
+    value: Math.abs(trend),
+    period: '30d',
+    direction: trend > 0 ? 'up' as const : (trend < 0 ? 'down' as const : 'neutral' as const)
+  } : undefined
 
-  const trendColor = trend && trend > 0 ? 'positive' : 'negative'
-  const TrendIcon = trend && trend > 0 ? TrendingUp : TrendingDown
+  // Format value with unit
+  const displayValue = typeof value === 'string' ? value : (unit ? `${value}${unit}` : value)
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-            <Icon className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {value}{unit && <span className="text-lg font-normal text-gray-500">{unit}</span>}
-            </p>
-          </div>
-        </div>
-        
-        {trend !== undefined && (
-          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${trendColorClasses[trendColor]}`}>
-            <TrendIcon className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              {Math.abs(trend)}%
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
+    <MetricCard
+      title={title}
+      value={displayValue}
+      {...(trendData && { trend: trendData })}
+      icon={icon}
+      status={statusMap[color]}
+      className="transition-all duration-200 hover:shadow-lg"
+    />
   )
 }
 
-// Component cho activity item
-function ActivityItem({ activity }: { activity: RecentActivity }) {
-  const severityConfig = {
-    CLEAN: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    OFFENSIVE: { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-    HATE: { color: 'bg-red-100 text-red-800', icon: Shield }
-  }
-
-  const config = severityConfig[activity.severity]
-  const Icon = config.icon
-
-  return (
-    <div className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors">
-      <div className={`p-2 rounded-full ${config.color}`}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">
-          {activity.content}
-        </p>
-        <div className="flex items-center space-x-2 mt-1">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
-            {activity.severity}
-          </span>
-          {activity.sessionId && (
-            <span className="text-xs text-gray-500">
-              Session: {activity.sessionId}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex-shrink-0">
-        <p className="text-xs text-gray-500">
-          {new Date(activity.timestamp).toLocaleTimeString('vi-VN')}
-        </p>
-      </div>
-    </div>
-  )
+// Dashboard activity severity formatter
+const formatActivitySeverity = (severity: RecentActivity['severity']) => {
+  const config = {
+    CLEAN: { color: 'bg-green-100 text-green-800', label: 'An toàn', icon: <CheckCircle className="w-3 h-3" /> },
+    OFFENSIVE: { color: 'bg-yellow-100 text-yellow-800', label: 'Cảnh báo', icon: <AlertTriangle className="w-3 h-3" /> },
+    HATE: { color: 'bg-red-100 text-red-800', label: 'Nguy hiểm', icon: <Shield className="w-3 h-3" /> }
+  } as const;
+  
+  return config[severity] || { color: 'bg-gray-100 text-gray-800', label: severity, icon: null };
 }
 
 // Loading component
@@ -232,93 +189,189 @@ function DashboardPage() {
         </div>
       </div>
 
+      {/* Enhanced P29 Filter Controls */}
+      <FilterControls
+        filters={[
+          {
+            key: 'dateRange',
+            label: 'Khoảng thời gian',
+            type: 'dateRange',
+            placeholder: 'Chọn thời gian'
+          },
+          {
+            key: 'severity',
+            label: 'Độ nghiêm trọng',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'CLEAN', label: 'An toàn' },
+              { value: 'OFFENSIVE', label: 'Cảnh báo' },
+              { value: 'HATE', label: 'Nguy hiểm' }
+            ],
+            placeholder: 'Chọn độ nghiêm trọng'
+          },
+          {
+            key: 'search',
+            label: 'Tìm kiếm',
+            type: 'text',
+            placeholder: 'Tìm kiếm nội dung...'
+          }
+        ]}
+        values={{
+          dateRange: { from: '', to: '' },
+          severity: 'all',
+          search: ''
+        }}
+        onValuesChange={(newValues) => {
+          // Handle filter changes - would update dashboard data
+          console.log('Dashboard filters changed:', newValues);
+        }}
+        onReset={() => {
+          // Reset filters to default
+          console.log('Dashboard filters reset');
+        }}
+        className="mb-6"
+      />
+
       {/* Metrics Grid */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard
+          <DashboardMetricCard
             title="Tổng phiên"
             value={stats.totalSessions.toLocaleString()}
             trend={stats.trends.sessions}
-            icon={Users}
+            icon={<Users className="h-6 w-6" />}
             color="blue"
           />
-          <MetricCard
+          <DashboardMetricCard
             title="Phát hiện"
             value={stats.totalDetections}
             trend={stats.trends.detections}
-            icon={Shield}
+            icon={<Shield className="h-6 w-6" />}
             color="red"
           />
-          <MetricCard
+          <DashboardMetricCard
             title="Độ chính xác"
             value={stats.accuracyRate}
             unit="%"
             trend={stats.trends.accuracy}
-            icon={CheckCircle}
+            icon={<CheckCircle className="h-6 w-6" />}
             color="green"
           />
-          <MetricCard
+          <DashboardMetricCard
             title="Thời gian xử lý"
             value={stats.averageProcessingTime}
             unit="ms"
             trend={stats.trends.processingTime}
-            icon={Activity}
+            icon={<Activity className="h-6 w-6" />}
             color="yellow"
           />
         </div>
       )}
 
-      {/* Charts Section - Placeholder for future implementation */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Hoạt động theo thời gian
-          </h3>
-          <div className="h-64 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Biểu đồ sẽ được implement trong P27</p>
-            </div>
-          </div>
-        </div>
+      {/* Enhanced P29 Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <AnalyticsChart
+          title="Hoạt động theo thời gian"
+          subtitle="Số lượng phiên và phát hiện theo ngày"
+          type="line"
+          data={[
+            { label: 'T2', value: 12, color: '#3B82F6' },
+            { label: 'T3', value: 19, color: '#3B82F6' },
+            { label: 'T4', value: 15, color: '#3B82F6' },
+            { label: 'T5', value: 25, color: '#3B82F6' },
+            { label: 'T6', value: 22, color: '#3B82F6' },
+            { label: 'T7', value: 18, color: '#3B82F6' },
+            { label: 'CN', value: 8, color: '#3B82F6' }
+          ]}
+          height={280}
+          className="bg-white rounded-lg border border-gray-200 p-6"
+          animate={true}
+          showGrid={true}
+          showLegend={false}
+        />
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Phân bố độ nghiêm trọng
-          </h3>
-          <div className="h-64 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <Shield className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Biểu đồ pie chart sẽ được implement trong P27</p>
-            </div>
-          </div>
-        </div>
+        <AnalyticsChart
+          title="Phân bố độ nghiêm trọng"
+          subtitle="Tỷ lệ các loại nội dung được phát hiện"
+          type="doughnut"
+          data={[
+            { label: 'An toàn', value: 75, color: '#10B981' },
+            { label: 'Cảnh báo', value: 20, color: '#F59E0B' },
+            { label: 'Nguy hiểm', value: 5, color: '#EF4444' }
+          ]}
+          height={280}
+          className="bg-white rounded-lg border border-gray-200 p-6"
+          animate={true}
+          showGrid={false}
+          showLegend={true}
+        />
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Hoạt động gần đây
-          </h3>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {activitiesLoading ? (
-            <div className="p-6 text-center text-gray-500">
-              <Activity className="h-8 w-8 mx-auto mb-2 animate-spin" />
-              <p>Đang tải hoạt động...</p>
-            </div>
-          ) : activities && activities.length > 0 ? (
-            activities.map((activity) => (
-              <ActivityItem key={activity.id} activity={activity} />
-            ))
-          ) : (
-            <div className="p-6 text-center text-gray-500">
-              <p>Chưa có hoạt động nào</p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Enhanced P29 Recent Activity DataTable */}
+      <DataTable
+        columns={[
+          {
+            key: 'timestamp',
+            label: 'Thời gian',
+            sortable: true,
+            render: (value) => new Date(value).toLocaleString('vi-VN'),
+            width: '140px'
+          },
+          {
+            key: 'content',
+            label: 'Nội dung',
+            render: (value) => (
+              <div className="max-w-xs truncate" title={value}>
+                {value}
+              </div>
+            )
+          },
+          {
+            key: 'severity',
+            label: 'Độ nghiêm trọng',
+            sortable: true,
+            align: 'center' as const,
+            width: '120px',
+            render: (value: RecentActivity['severity']) => {
+              const config = formatActivitySeverity(value);
+              return (
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+                  {config.icon}
+                  {config.label}
+                </span>
+              );
+            }
+          },
+          {
+            key: 'sessionId',
+            label: 'Session ID',
+            width: '100px',
+            render: (value) => value ? (
+              <span className="text-xs text-muted-foreground font-mono">
+                {value.substring(0, 8)}...
+              </span>
+            ) : '-'
+          }
+        ]}
+        data={activities || []}
+        loading={activitiesLoading}
+        pagination={{
+          page: 1,
+          pageSize: 10,
+          total: activities?.length || 0,
+          onPageChange: (page) => console.log('Page changed:', page)
+        }}
+        actions={[
+          {
+            label: 'Xem chi tiết',
+            onClick: (row) => console.log('View details:', row),
+            variant: 'default' as const
+          }
+        ]}
+        onRowClick={(row) => console.log('Row clicked:', row)}
+        className="bg-white"
+      />
     </div>
   )
 }

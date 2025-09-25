@@ -37,7 +37,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const checkPermissions = useCallback(async (): Promise<void> => {
     if (!isPermissionsAPISupported) {
       // Fallback: assume prompt nếu không support Permissions API
-      setPermissions({ microphone: 'prompt' });
+      setPermissions({ microphone: 'prompt', camera: 'prompt' });
       return;
     }
 
@@ -49,7 +49,8 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
       const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
       
       const newPermissions: MediaPermissions = {
-        microphone: mapPermissionState(micPermission.state)
+        microphone: mapPermissionState(micPermission.state),
+        camera: 'prompt' // Default value
       };
 
       // Check camera permission if supported
@@ -65,7 +66,8 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     } catch (err) {
       const checkError: THookError = {
         message: err instanceof Error ? err.message : 'Failed to check permissions',
-        code: 'PERMISSION_CHECK_FAILED',
+        name: 'PermissionCheckError',
+        code: err instanceof Error ? err.message : 'PERMISSION_CHECK_FAILED',
         timestamp: new Date()
       };
       setError(checkError);
@@ -117,6 +119,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
       const requestError: THookError = {
         message: errorMessage,
+        name: 'MicrophoneRequestError',
         code: 'MICROPHONE_REQUEST_FAILED',
         timestamp: new Date()
       };
@@ -175,6 +178,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
       const requestError: THookError = {
         message: errorMessage,
+        name: 'CameraRequestError',
         code: 'CAMERA_REQUEST_FAILED',
         timestamp: new Date()
       };
@@ -255,8 +259,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     isLoading,
     error,
     requestMicrophone,
-    requestCamera,
-    checkPermissions
+    requestCamera
   };
 }
 

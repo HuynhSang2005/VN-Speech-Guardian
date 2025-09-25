@@ -2,6 +2,8 @@
 __pycache__/
 .venv/
 *.pyc
+node_modules
+.turbo
 
 # Ignore heavy model fine-tuned checkpoints (we keep phobert-hsd but not bert-finetuned)
 apps/ai-worker/app/models/bert-finetuned/*

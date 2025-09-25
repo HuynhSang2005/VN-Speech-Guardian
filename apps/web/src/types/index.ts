@@ -313,13 +313,4 @@ export interface IVADResult {
   timestamp: number
 }
 
-// Extend AudioWorkletProcessor for our custom processor
-declare global {
-  interface AudioWorkletGlobalScope extends WorkerGlobalScope {
-    registerProcessor: (
-      name: string,
-      processor: new () => AudioWorkletProcessor
-    ) => void
-    AudioWorkletProcessor: new () => AudioWorkletProcessor
-  }
-}
+// AudioWorklet types are now handled in audioworklet.d.ts

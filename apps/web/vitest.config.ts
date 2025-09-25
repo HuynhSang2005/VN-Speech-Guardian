@@ -23,17 +23,19 @@ export default defineConfig({
     },
   },
 
+  // @ts-ignore - Vitest config
   test: {
     // Environment configuration
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup-enhanced.ts'],
     
     // Global test utilities
     globals: true,
     
-    // Test file patterns
+    // Test file patterns - enhanced for P28
     include: [
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
+      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'src/tests/**/*.test.{ts,tsx}' // P28 comprehensive tests
     ],
     exclude: [
       'node_modules',
@@ -42,7 +44,8 @@ export default defineConfig({
       'coverage',
       '.storybook',
       'storybook-static',
-      'e2e'
+      'e2e',
+      'src/tests/e2e/**/*' // E2E tests handled by Playwright
     ],
 
     // Coverage configuration - theo testing.instructions.md targets >80%
@@ -51,7 +54,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       reportsDirectory: './coverage',
       
-      // Coverage thresholds cho VN Speech Guardian
+      // Coverage thresholds cho VN Speech Guardian + P28
       thresholds: {
         global: {
           branches: 80,    // Branch coverage
@@ -73,6 +76,28 @@ export default defineConfig({
           functions: 85,
           lines: 85,  
           statements: 85
+        },
+
+        // P28 enhanced components coverage
+        'src/components/forms/**': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90
+        },
+
+        'src/components/motion/**': {
+          branches: 85,
+          functions: 85,
+          lines: 85,
+          statements: 85
+        },
+
+        'src/stores/**': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90
         }
       },
       
@@ -94,11 +119,6 @@ export default defineConfig({
     testTimeout: 10000,  // 10s timeout
     hookTimeout: 10000,
     
-    // Parallel execution
-    threads: true,
-    maxThreads: 4,
-    minThreads: 1,
-    
     // Watch mode configuration
     watchExclude: [
       '**/node_modules/**',
@@ -112,18 +132,14 @@ export default defineConfig({
       'json', 
       'html'
     ],
-    outputFile: {
-      json: './coverage/test-results.json',
-      html: './coverage/test-report.html'
-    },
 
-    // Mock configuration
+    // Mock configuration for P28
     clearMocks: true,
     restoreMocks: true,
     mockReset: true,
 
     // Snapshot configuration
-    resolveSnapshotPath: (testPath, snapExtension) => {
+    resolveSnapshotPath: (testPath: string, snapExtension: string) => {
       return testPath.replace(/\.test\.([tj]sx?)/, `.test${snapExtension}`)
     }
   },
@@ -134,7 +150,9 @@ export default defineConfig({
       '@testing-library/react',
       '@testing-library/jest-dom',
       '@testing-library/user-event',
-      'msw'
+      'msw',
+      'framer-motion',
+      'zustand'
     ]
   }
 })

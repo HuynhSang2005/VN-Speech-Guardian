@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { cn } from '../lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/enhanced-card'
+import { EnhancedButton } from '@/components/ui/enhanced-button'
 
 // Navigation menu items
 const navigation = [
@@ -43,14 +45,45 @@ const navigation = [
   },
 ]
 
-// Loading component cho authenticated content
+// Enhanced P29 Loading component cho authenticated content
 function AuthenticatedLoadingSpinner() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-gray-600">Đang tải nội dung...</p>
-      </div>
+      <Card className="p-8 max-w-sm mx-auto text-center">
+        <CardContent>
+          <div className="flex flex-col items-center space-y-6">
+            {/* Enhanced loading animation */}
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-border border-t-primary"></div>
+              <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-primary/30 animate-pulse"></div>
+            </div>
+            
+            {/* Loading text with brand colors */}
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-foreground">
+                Đang tải nội dung...
+              </p>
+              <p className="text-sm text-muted-foreground">
+                VN Speech Guardian đang khởi động
+              </p>
+            </div>
+            
+            {/* Progress dots animation */}
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 bg-primary rounded-full animate-pulse"
+                  style={{
+                    animationDelay: `${i * 0.2}s`,
+                    animationDuration: '1s'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -68,105 +101,121 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
         />
       )}
 
-      {/* Sidebar */}
+      {/* Enhanced P29 Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-background border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-6 border-b">
           <Link 
             to="/"
-            className="text-lg font-bold text-gray-900 hover:text-primary transition-colors"
+            className="text-lg font-bold text-foreground hover:text-primary transition-colors"
           >
             🛡️ VN Speech Guardian
           </Link>
-          <button 
+          <EnhancedButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-2 rounded-md text-gray-400 hover:text-gray-600 lg:hidden"
+            className="lg:hidden"
           >
             <X className="w-5 h-5" />
-          </button>
+          </EnhancedButton>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {/* Quick Actions */}
-          <div className="mb-8">
-            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Quick Actions
-            </p>
-            <div className="mt-3 space-y-1">
+        <nav className="flex-1 px-4 py-6 space-y-6">
+          {/* Quick Actions Card */}
+          <Card variant="ghost" className="bg-card/50">
+            <CardHeader className="pb-3">
+              <CardTitle size="sm" className="text-muted-foreground font-medium uppercase tracking-wider">
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
                   onClick={() => onClose()}
                   className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    "text-gray-700 hover:text-primary hover:bg-primary/5",
-                    "[&.active]:bg-primary [&.active]:text-white [&.active]:shadow-md"
+                    "group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200",
+                    "text-muted-foreground hover:text-foreground hover:bg-primary/10",
+                    "[&.active]:bg-primary [&.active]:text-primary-foreground [&.active]:shadow-md"
                   )}
                 >
-                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-md bg-primary/10 text-primary group-[.active]:bg-primary-foreground/20">
+                    <item.icon className="h-4 w-4" />
+                  </div>
                   <div className="flex-1">
                     <div className="font-medium">{item.name}</div>
-                    <div className="text-xs opacity-70">{item.description}</div>
+                    <div className="text-xs opacity-70 mt-0.5">{item.description}</div>
                   </div>
                 </Link>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Other Actions */}
-          <div>
-            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              General
-            </p>
-            <div className="mt-3 space-y-1">
+          {/* General Actions Card */}
+          <Card variant="ghost" className="bg-card/50">
+            <CardHeader className="pb-3">
+              <CardTitle size="sm" className="text-muted-foreground font-medium uppercase tracking-wider">
+                General
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
               <Link
                 to="/"
                 onClick={() => onClose()}
-                className="group flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:text-primary hover:bg-primary/5 transition-colors"
+                className="group flex items-center px-3 py-3 text-sm font-medium text-muted-foreground rounded-lg hover:text-foreground hover:bg-primary/10 transition-all duration-200"
               >
-                <Home className="mr-3 h-5 w-5 flex-shrink-0" />
-                Về trang chủ
+                <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-md bg-primary/10 text-primary">
+                  <Home className="h-4 w-4" />
+                </div>
+                <span>Về trang chủ</span>
               </Link>
               
-              <button
+              <EnhancedButton
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   onClose()
                   // TODO: Implement settings modal
                 }}
-                className="w-full group flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:text-primary hover:bg-primary/5 transition-colors"
+                className="w-full justify-start px-3 py-3 h-auto text-muted-foreground hover:text-foreground hover:bg-primary/10"
               >
-                <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
-                Cài đặt
-              </button>
-            </div>
-          </div>
+                <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-md bg-primary/10 text-primary">
+                  <Settings className="h-4 w-4" />
+                </div>
+                <span>Cài đặt</span>
+              </EnhancedButton>
+            </CardContent>
+          </Card>
         </nav>
 
-        {/* User section */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <UserButton 
-              appearance={{
-                elements: {
-                  avatarBox: "w-10 h-10"
-                }
-              }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                Authenticated User
-              </p>
-              <p className="text-xs text-gray-500">
-                VN Speech Guardian
-              </p>
+        {/* Enhanced User Section */}
+        <Card className="m-4 mt-auto border-t-0 rounded-t-none">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <UserButton 
+                appearance={{
+                  elements: {
+                    avatarBox: "w-10 h-10"
+                  }
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  Authenticated User
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  VN Speech Guardian
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   )
@@ -196,7 +245,7 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <Sidebar 
         isOpen={sidebarOpen} 
@@ -205,37 +254,43 @@ function AuthenticatedLayout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between lg:px-6">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 lg:hidden"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">
-                VN Speech Guardian
-              </h1>
-              <p className="text-sm text-gray-500">
-                Bảo vệ nội dung tiếng Việt với AI
-              </p>
-            </div>
-          </div>
+        {/* Enhanced P29 Top Bar */}
+        <Card className="rounded-none border-x-0 border-t-0 shadow-sm">
+          <CardContent className="px-4 py-3 lg:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <EnhancedButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden"
+                >
+                  <Menu className="w-6 h-6" />
+                </EnhancedButton>
+                
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    VN Speech Guardian
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Bảo vệ nội dung tiếng Việt với AI
+                  </p>
+                </div>
+              </div>
 
-          {/* User actions - desktop */}
-          <div className="hidden lg:flex items-center space-x-4">
-            <UserButton 
-              appearance={{
-                elements: {
-                  avatarBox: "w-8 h-8"
-                }
-              }}
-            />
-          </div>
-        </div>
+              {/* User actions - desktop */}
+              <div className="hidden lg:flex items-center space-x-4">
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">

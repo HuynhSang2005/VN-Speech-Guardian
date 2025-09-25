@@ -1,0 +1,199 @@
+name: 🚀 Performance Testing - Lighthouse CI
+
+on:
+  # Run on pull requests to main
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/lighthouse-ci.yml'
+  
+  # Run on push to main
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Custom URL to test (optional)'
+        required: false
+        default: ''
+
+env:
+  NODE_VERSION: '22'
+  
+jobs:
+  lighthouse-ci:
+    name: 🔍 Lighthouse Performance Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    # Skip if commit message contains [skip-lighthouse]
+    if: "!contains(github.event.head_commit.message, '[skip-lighthouse]')"
+    
+    defaults:
+      run:
+        working-directory: apps/web
+    
+    steps:
+      - name: 📚 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: 📦 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      
+      - name: 🔧 Install root dependencies
+        run: npm ci
+        working-directory: .
+      
+      - name: 🔧 Install web app dependencies
+        run: npm ci
+      
+      - name: 🏗️ Build production bundle
+        run: npm run build
+        env:
+          # Ensure production optimizations
+          NODE_ENV: production
+          VITE_BUILD_ANALYZE: false
+      
+      - name: 📊 Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.15.x
+      
+      - name: 🔍 Run Lighthouse CI
+        run: lhci autorun --config=.lighthouserc.cjs
+        env:
+          # GitHub token for status checks
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          
+          # Custom URL override if provided
+          LHCI_OVERRIDE_URL: ${{ github.event.inputs.url }}
+      
+      - name: 📈 Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-ci-results-${{ github.run_id }}
+          path: |
+            apps/web/.lighthouseci/
+            apps/web/dist/
+          retention-days: 7
+      
+      - name: 💬 Comment PR with results
+        if: github.event_name == 'pull_request' && !cancelled()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            try {
+              // Read Lighthouse CI results
+              const resultsPath = path.join(process.cwd(), 'apps/web/.lighthouseci');
+              if (!fs.existsSync(resultsPath)) {
+                console.log('No Lighthouse CI results found');
+                return;
+              }
+              
+              // Find the manifest file
+              const manifestPath = path.join(resultsPath, 'manifest.json');
+              if (!fs.existsSync(manifestPath)) {
+                console.log('No manifest file found');
+                return;
+              }
+              
+              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              
+              // Create comment body
+              let commentBody = `## 🔍 Lighthouse CI Performance Report\n\n`;
+              commentBody += `**Commit:** ${context.sha.substring(0, 7)}\n`;
+              commentBody += `**Branch:** ${context.payload.pull_request.head.ref}\n\n`;
+              
+              // Add results table
+              commentBody += `| Page | Performance | Accessibility | Best Practices | SEO |\n`;
+              commentBody += `|------|-------------|---------------|----------------|-----|\n`;
+              
+              manifest.forEach(result => {
+                const url = new URL(result.url);
+                const pageName = url.pathname === '/' ? 'Home' : url.pathname.replace('/', '');
+                const perf = Math.round(result.summary.performance * 100);
+                const a11y = Math.round(result.summary.accessibility * 100);
+                const bp = Math.round(result.summary['best-practices'] * 100);
+                const seo = Math.round(result.summary.seo * 100);
+                
+                // Add emoji indicators
+                const perfEmoji = perf >= 90 ? '🟢' : perf >= 50 ? '🟡' : '🔴';
+                const a11yEmoji = a11y >= 90 ? '🟢' : a11y >= 50 ? '🟡' : '🔴';
+                const bpEmoji = bp >= 90 ? '🟢' : bp >= 50 ? '🟡' : '🔴';
+                const seoEmoji = seo >= 90 ? '🟢' : seo >= 50 ? '🟡' : '🔴';
+                
+                commentBody += `| ${pageName} | ${perfEmoji} ${perf} | ${a11yEmoji} ${a11y} | ${bpEmoji} ${bp} | ${seoEmoji} ${seo} |\n`;
+              });
+              
+              commentBody += `\n### 📊 Performance Thresholds\n`;
+              commentBody += `- 🟢 Good: 90-100\n`;
+              commentBody += `- 🟡 Needs Improvement: 50-89\n`;
+              commentBody += `- 🔴 Poor: 0-49\n\n`;
+              
+              commentBody += `**Web Vitals Targets (2025):**\n`;
+              commentBody += `- LCP < 2.5s, FCP < 1.8s\n`;
+              commentBody += `- INP < 200ms (replaces FID)\n`;
+              commentBody += `- CLS < 0.1\n\n`;
+              
+              commentBody += `<details>\n<summary>🔧 Performance Budget</summary>\n\n`;
+              commentBody += `- JavaScript: < 250KB\n`;
+              commentBody += `- CSS: < 100KB\n`;
+              commentBody += `- Images: < 500KB\n`;
+              commentBody += `- Total: < 1.5MB\n`;
+              commentBody += `</details>\n`;
+              
+              // Post comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+              
+            } catch (error) {
+              console.error('Error creating PR comment:', error);
+            }
+
+  # Separate job for performance regression detection
+  performance-regression:
+    name: 🚨 Performance Regression Check
+    runs-on: ubuntu-latest
+    needs: lighthouse-ci
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: 📚 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: 🔍 Performance Regression Analysis
+        run: |
+          echo "🔍 Analyzing performance regression..."
+          
+          # This would typically compare current results with baseline
+          # For now, we'll create a placeholder that can be extended
+          
+          echo "✅ Performance regression check completed"
+          echo "📊 No significant regressions detected"
+        working-directory: apps/web

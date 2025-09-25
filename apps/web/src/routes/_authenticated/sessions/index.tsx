@@ -10,20 +10,19 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { 
-  Search,
-  Calendar,
   Filter,
-  MoreHorizontal,
   Eye,
   Download,
   Trash2,
   CheckCircle,
   AlertTriangle,
   Shield,
-  Clock,
-  User
+  User,
+  MoreHorizontal
 } from 'lucide-react'
 import type { Session, SessionsResponse } from '@/types/components'
+import { SessionCard } from '@/components/ui/enhanced-card'
+import { FilterControls, DataTable } from '@/components/ui/enhanced-dashboard'
 
 // Mock data function
 const fetchSessions = async (page: number = 1, limit: number = 10): Promise<SessionsResponse> => {
@@ -80,6 +79,17 @@ const fetchSessions = async (page: number = 1, limit: number = 10): Promise<Sess
       totalPages: Math.ceil(147 / limit)
     }
   }
+}
+
+// Helper function for session status formatting
+const formatSessionStatus = (status: Session['status']) => {
+  const config = {
+    completed: { color: 'bg-green-100 text-green-800', text: 'Hoàn thành' },
+    processing: { color: 'bg-blue-100 text-blue-800', text: 'Đang xử lý' },
+    failed: { color: 'bg-red-100 text-red-800', text: 'Thất bại' }
+  } as const;
+  
+  return config[status] || { color: 'bg-gray-100 text-gray-800', text: status };
 }
 
 // Component cho session row
@@ -263,159 +273,219 @@ function SessionsPage() {
         </div>
       </div>
 
-      {/* Filters và Search */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm session ID, user..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-            />
-          </div>
+      {/* Enhanced P29 Filter Controls */}
+      <FilterControls
+        filters={[
+          {
+            key: 'search',
+            label: 'Tìm kiếm',
+            type: 'text',
+            placeholder: 'Tìm kiếm session ID, user...'
+          },
+          {
+            key: 'dateRange',
+            label: 'Khoảng thời gian',
+            type: 'dateRange',
+            placeholder: 'Chọn thời gian'
+          },
+          {
+            key: 'status',
+            label: 'Trạng thái',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'Tất cả trạng thái' },
+              { value: 'completed', label: 'Hoàn thành' },
+              { value: 'processing', label: 'Đang xử lý' },
+              { value: 'failed', label: 'Thất bại' }
+            ],
+            placeholder: 'Chọn trạng thái'
+          },
+          {
+            key: 'severity',
+            label: 'Độ nghiêm trọng',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'Tất cả mức độ' },
+              { value: 'CLEAN', label: 'An toàn' },
+              { value: 'OFFENSIVE', label: 'Cảnh báo' },
+              { value: 'HATE', label: 'Nguy hiểm' }
+            ],
+            placeholder: 'Chọn mức độ'
+          }
+        ]}
+        values={{
+          search: searchTerm,
+          dateRange: { from: '', to: '' },
+          status: selectedStatus,
+          severity: 'all'
+        }}
+        onValuesChange={(newValues) => {
+          if (typeof newValues.search === 'string') {
+            setSearchTerm(newValues.search);
+          }
+          if (typeof newValues.status === 'string') {
+            setSelectedStatus(newValues.status);
+          }
+          // Handle other filter changes
+          console.log('Session filters changed:', newValues);
+        }}
+        onReset={() => {
+          setSearchTerm('');
+          setSelectedStatus('all');
+          console.log('Session filters reset');
+        }}
+        className="mb-6"
+      />
 
-          {/* Date Range */}
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
-              <option value="today">Hôm nay</option>
-              <option value="week">7 ngày qua</option>
-              <option value="month">30 ngày qua</option>
-              <option value="custom">Tùy chọn</option>
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <select 
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="processing">Đang xử lý</option>
-            <option value="failed">Thất bại</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Sessions Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Session ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Start Time</span>
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Duration
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Segments
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Detections
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Processing
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-4">
-                    <SessionsLoading />
-                  </td>
-                </tr>
-              ) : data?.sessions && data.sessions.length > 0 ? (
-                data.sessions.map((session) => (
-                  <SessionRow key={session.id} session={session} />
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center">
-                      <Shield className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium">Chưa có sessions</p>
-                      <p className="text-sm">Bắt đầu xử lý audio để xem lịch sử ở đây</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {data?.pagination && data.pagination.totalPages > 1 && (
-          <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+      {/* Enhanced P29 Sessions DataTable */}
+      <DataTable
+        columns={[
+          {
+            key: 'id',
+            label: 'Session ID',
+            sortable: true,
+            width: '140px',
+            render: (value) => (
+              <Link 
+                to="/sessions/$sessionId" 
+                params={{ sessionId: value }}
+                className="text-sm font-medium text-primary hover:text-primary/80 font-mono"
               >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, data.pagination.totalPages))}
-                disabled={currentPage === data.pagination.totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(currentPage * 10, data.pagination.total)}</span> of{' '}
-                  <span className="font-medium">{data.pagination.total}</span> results
-                </p>
+                {value.substring(0, 12)}...
+              </Link>
+            )
+          },
+          {
+            key: 'userName',
+            label: 'User',
+            sortable: true,
+            render: (value, row) => (
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mr-3">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium">{value}</div>
+                  <div className="text-xs text-muted-foreground">{row.userId.substring(0, 8)}...</div>
+                </div>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  {[...Array(data.pagination.totalPages)].map((_, i) => (
-                    <button
-                      key={i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === i + 1
-                          ? 'z-10 bg-primary border-primary text-white'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </nav>
+            )
+          },
+          {
+            key: 'startTime',
+            label: 'Thời gian bắt đầu',
+            sortable: true,
+            width: '160px',
+            render: (value) => (
+              <div className="text-sm">
+                <div>{new Date(value).toLocaleDateString('vi-VN')}</div>
+                <div className="text-xs text-muted-foreground">{new Date(value).toLocaleTimeString('vi-VN')}</div>
               </div>
-            </div>
-          </div>
-        )}
-      </div>
+            )
+          },
+          {
+            key: 'duration',
+            label: 'Thời lượng',
+            sortable: true,
+            align: 'center' as const,
+            width: '100px',
+            render: (value) => (
+              <span className="text-sm font-mono">
+                {Math.floor(value / 60)}:{String(value % 60).padStart(2, '0')}
+              </span>
+            )
+          },
+          {
+            key: 'detectionsCount',
+            label: 'Phát hiện',
+            sortable: true,
+            align: 'center' as const,
+            width: '100px',
+            render: (value, row) => (
+              <div className="flex items-center justify-center space-x-2">
+                <span className="text-sm font-medium">{value}</span>
+                {value > 0 && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                    row.highestSeverity === 'CLEAN' ? 'bg-green-100 text-green-800' :
+                    row.highestSeverity === 'OFFENSIVE' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {row.highestSeverity === 'CLEAN' && <CheckCircle className="w-3 h-3" />}
+                    {row.highestSeverity === 'OFFENSIVE' && <AlertTriangle className="w-3 h-3" />}
+                    {row.highestSeverity === 'HATE' && <Shield className="w-3 h-3" />}
+                    {row.highestSeverity}
+                  </span>
+                )}
+              </div>
+            )
+          },
+          {
+            key: 'status',
+            label: 'Trạng thái',
+            sortable: true,
+            align: 'center' as const,
+            width: '120px',
+            render: (value: Session['status']) => {
+              const config = formatSessionStatus(value);
+              return (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+                  {config.text}
+                </span>
+              );
+            }
+          },
+          {
+            key: 'processingTime',
+            label: 'Xử lý',
+            sortable: true,
+            align: 'center' as const,
+            width: '80px',
+            render: (value) => (
+              <span className="text-sm text-muted-foreground">{value}ms</span>
+            )
+          }
+        ]}
+        data={data?.sessions || []}
+        loading={isLoading}
+        error={error ? 'Lỗi khi tải danh sách sessions. Vui lòng thử lại.' : ''}
+        pagination={{
+          page: currentPage,
+          pageSize: 10,
+          total: data?.pagination?.total || 0,
+          onPageChange: setCurrentPage
+        }}
+        actions={[
+          {
+            label: 'Xem chi tiết',
+            icon: <Eye className="w-4 h-4" />,
+            onClick: (row) => {
+              // Navigate to session detail
+              console.log('View session:', row.id);
+            },
+            variant: 'default' as const
+          },
+          {
+            label: 'Tải xuống',
+            icon: <Download className="w-4 h-4" />,
+            onClick: (row) => {
+              console.log('Download session:', row.id);
+            },
+            variant: 'default' as const
+          },
+          {
+            label: 'Xóa',
+            icon: <Trash2 className="w-4 h-4" />,
+            onClick: (row) => {
+              console.log('Delete session:', row.id);
+            },
+            variant: 'destructive' as const
+          }
+        ]}
+        onRowClick={(row) => {
+          console.log('Session row clicked:', row.id);
+        }}
+        className="bg-white"
+      />
     </div>
   )
 }

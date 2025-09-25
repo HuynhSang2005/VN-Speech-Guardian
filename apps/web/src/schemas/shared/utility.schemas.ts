@@ -19,7 +19,7 @@ export const AppErrorSchema = z.object({
   stack: z.string().optional()
 });
 
-export type TAppError = z.infer<typeof AppErrorSchema> & Error;
+export type TAppError = z.infer<typeof AppErrorSchema> & Omit<Error, 'stack'> & { stack?: string };
 
 // Detection Labels (legacy compatibility với existing code)
 export const LegacyDetectionLabelSchema = z.enum([
@@ -87,9 +87,10 @@ export function createAppError(
   code: TErrorCode,
   message?: string,
   context?: Record<string, unknown>
-): TAppError {
+): z.infer<typeof AppErrorSchema> {
   return AppErrorSchema.parse({
     code,
+    name: 'AppError',
     message: message || `Error: ${code}`,
     context,
     timestamp: new Date()

@@ -1,0 +1,542 @@
+{
+  "config": {
+    "configFile": "E:\\dev-my-project\\VN-Speech-Guardian\\apps\\web\\playwright.config.ts",
+    "rootDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "E:\\dev-my-project\\VN-Speech-Guardian\\apps\\web\\tests\\global-setup.ts",
+    "globalTeardown": "E:\\dev-my-project\\VN-Speech-Guardian\\apps\\web\\tests\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 9
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/tests/**/*.spec.ts",
+          "**/tests/**/*.test.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/tests/**/*.spec.ts",
+          "**/tests/**/*.test.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/tests/**/*.spec.ts",
+          "**/tests/**/*.test.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/tests/**/*.spec.ts",
+          "**/tests/**/*.test.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/tests/**/*.spec.ts",
+          "**/tests/**/*.test.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "audio-tests",
+        "name": "audio-tests",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/audio/**/*.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 9
+        },
+        "id": "auth-tests",
+        "name": "auth-tests",
+        "testDir": "E:/dev-my-project/VN-Speech-Guardian/apps/web/tests",
+        "testIgnore": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/build/**"
+        ],
+        "testMatch": [
+          "**/auth/**/*.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.0",
+    "workers": 10,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "stdout": "ignore",
+      "stderr": "pipe"
+    }
+  },
+  "suites": [
+    {
+      "title": "e2e\\application-flow.spec.ts",
+      "file": "e2e/application-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Application Flow E2E",
+          "file": "e2e/application-flow.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load home page and redirect to login",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3422,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.330Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-71b8f1b141c95402add0",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 10,
+              "column": 3
+            },
+            {
+              "title": "should load login page successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 23391,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.395Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-8bcbf364b96abf9af42c",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "should show proper error page for 404",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 3898,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.342Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-90878cf5f39447964f8e",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "should have working React application",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 4013,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.302Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-b32f8c4672be7eeb3c82",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 47,
+              "column": 3
+            },
+            {
+              "title": "should handle network requests properly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 23673,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.358Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-0faca74a0614f4ea480f",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 60,
+              "column": 3
+            },
+            {
+              "title": "should be responsive and mobile-friendly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 5251,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.358Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-774d886b537cb894cfa6",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 86,
+              "column": 3
+            },
+            {
+              "title": "should not have console errors on load",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 5589,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.339Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-4b438adc42d1c7738735",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 109,
+              "column": 3
+            },
+            {
+              "title": "should handle JavaScript execution without crashes",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 7,
+                      "status": "passed",
+                      "duration": 4816,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.395Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-f4119beb4f33af9231d5",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 138,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Route Protection",
+          "file": "e2e/application-flow.spec.ts",
+          "line": 175,
+          "column": 6,
+          "specs": [
+            {
+              "title": "protected routes should redirect to login",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 8,
+                      "status": "passed",
+                      "duration": 6273,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-09-24T09:07:48.356Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ba35531a0f05a0487f38-da1ced4483ca0dcaf438",
+              "file": "e2e/application-flow.spec.ts",
+              "line": 177,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-09-24T09:07:44.742Z",
+    "duration": 28005.884,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

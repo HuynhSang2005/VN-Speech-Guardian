@@ -2,7 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
+
 import { resolve } from 'path'
+import { bundleAnalysisPlugins, productionChunkingConfig } from './config/bundle-analysis.config'
+import { getBuildConfig } from './config/build.config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -30,6 +33,9 @@ export default defineConfig({
     
     // TypeScript path mapping integration - Vietnamese dev experience
     tsconfigPaths(),
+
+    // Advanced bundle analysis plugins - comprehensive analysis suite
+    ...(process.env.ANALYZE_BUNDLE ? bundleAnalysisPlugins : []),
   ],
 
   // Development server configuration  
@@ -60,52 +66,112 @@ export default defineConfig({
     },
   },
 
-  // Build configuration cho production
+  // Advanced production build configuration với bundle analysis
   build: {
+    // Use optimized build config based on environment
+    ...getBuildConfig(),
+    
+    // Preserve specific overrides
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: true,
-    minify: 'esbuild',
-    target: 'es2022',
+    cssMinify: true,
+    reportCompressedSize: true,
     
-    // Chunk splitting strategy cho optimal loading
+    // Advanced chunk splitting strategy với production optimization
     rollupOptions: {
+      // Merge với production chunking config nếu analyze mode
+      ...(process.env.ANALYZE_BUNDLE ? productionChunkingConfig.rollupOptions : {}),
+      
       output: {
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         
-        // Manual chunking cho better caching
-        manualChunks: {
-          // React core
-          'react-vendor': ['react', 'react-dom'],
+        // Enhanced manual chunking strategy (fallback cho non-analyze mode)
+        manualChunks: process.env.ANALYZE_BUNDLE 
+          ? productionChunkingConfig.rollupOptions.output.manualChunks 
+          : (id) => {
+          // Node modules chunking
+          if (id.includes('node_modules')) {
+            // React ecosystem
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            
+            // TanStack ecosystem
+            if (id.includes('@tanstack')) {
+              return 'tanstack-vendor';
+            }
+            
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'radix-vendor';
+            }
+            
+            // Animation libraries
+            if (id.includes('framer-motion')) {
+              return 'animation-vendor';
+            }
+            
+            // Audio processing libraries
+            if (id.includes('wavesurfer') || id.includes('audio-worklet')) {
+              return 'audio-vendor';
+            }
+            
+            // Chart libraries (only loaded on dashboard)
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'chart-vendor';
+            }
+            
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform')) {
+              return 'form-vendor';
+            }
+            
+            // Authentication
+            if (id.includes('@clerk')) {
+              return 'auth-vendor';
+            }
+            
+            // Socket.IO
+            if (id.includes('socket.io')) {
+              return 'socket-vendor';
+            }
+            
+            // Utility libraries
+            if (id.includes('axios') || id.includes('clsx') || id.includes('class-variance-authority')) {
+              return 'utils-vendor';
+            }
+            
+            // Everything else from node_modules
+            return 'vendor';
+          }
           
-          // TanStack ecosystem
-          'tanstack-vendor': ['@tanstack/react-query', '@tanstack/react-router'],
+          // Application code chunking
+          if (id.includes('/routes/')) {
+            // Route-based chunking
+            if (id.includes('/routes/dashboard')) return 'route-dashboard';
+            if (id.includes('/routes/live')) return 'route-live';
+            if (id.includes('/routes/sessions')) return 'route-sessions';
+            return 'routes';
+          }
           
-          // UI libraries
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-form',
-            'framer-motion'
-          ],
+          if (id.includes('/components/audio/')) {
+            return 'components-audio';
+          }
           
-          // Audio processing libraries
-          'audio-vendor': ['wavesurfer.js', '@wavesurfer/react'],
-          
-          // Chart libraries
-          'chart-vendor': ['recharts'],
-          
-          // Utility libraries
-          'utils-vendor': ['axios', 'clsx', 'class-variance-authority', 'tailwind-merge']
+          if (id.includes('/components/charts/')) {
+            return 'components-charts';
+          }
         },
       },
+      
+      // External dependencies (if building library mode)
+      external: process.env.BUILD_MODE === 'library' ? [
+        'react',
+        'react-dom',
+      ] : [],
     },
-    
-    // Bundle analysis và performance
-    reportCompressedSize: true,
-    chunkSizeWarningLimit: 1000, // KB
   },
 
   // Path resolution
