@@ -5,9 +5,10 @@
  */
 
 import '@testing-library/jest-dom'
+import React from 'react'
 import { vi, beforeAll, afterEach, afterAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { server } from './mocks/api'
+import { server } from '../mocks/api'
 
 // =============================================================================
 // Environment Configuration
@@ -330,6 +331,112 @@ vi.mock('framer-motion', () => ({
   }),
   useSpring: (value: any) => value,
   useTransform: (value: any) => value,
+}))
+
+// =============================================================================
+// Lucide React Icons Mock
+// =============================================================================
+
+vi.mock('lucide-react', () => {
+  const createMockIcon = (name: string) => {
+    const MockIcon = ({ className, size, ...props }: any) => {
+      return React.createElement('svg', {
+        className,
+        width: size || 24,
+        height: size || 24,
+        'data-testid': `${name.toLowerCase()}-icon`,
+        'aria-hidden': 'true',
+        ...props
+      })
+    }
+    MockIcon.displayName = name
+    return MockIcon
+  }
+
+  return {
+    // Commonly used icons in the project
+    Copy: createMockIcon('Copy'),
+    Search: createMockIcon('Search'),
+    Filter: createMockIcon('Filter'),
+    Download: createMockIcon('Download'),
+    ChevronUp: createMockIcon('ChevronUp'),
+    ChevronDown: createMockIcon('ChevronDown'),
+    ChevronLeft: createMockIcon('ChevronLeft'),
+    ChevronRight: createMockIcon('ChevronRight'),
+    Settings: createMockIcon('Settings'),
+    User: createMockIcon('User'),
+    Activity: createMockIcon('Activity'),
+    AlertTriangle: createMockIcon('AlertTriangle'),
+    Play: createMockIcon('Play'),
+    Pause: createMockIcon('Pause'),
+    Square: createMockIcon('Square'),
+    Mic: createMockIcon('Mic'),
+    MicOff: createMockIcon('MicOff'),
+    Volume2: createMockIcon('Volume2'),
+    VolumeX: createMockIcon('VolumeX'),
+    Eye: createMockIcon('Eye'),
+    EyeOff: createMockIcon('EyeOff'),
+    Edit: createMockIcon('Edit'),
+    Trash2: createMockIcon('Trash2'),
+    MoreHorizontal: createMockIcon('MoreHorizontal'),
+    X: createMockIcon('X'),
+    Check: createMockIcon('Check'),
+    AlertCircle: createMockIcon('AlertCircle'),
+    Info: createMockIcon('Info'),
+    Loader2: createMockIcon('Loader2'),
+    Menu: createMockIcon('Menu'),
+    Home: createMockIcon('Home'),
+    BarChart3: createMockIcon('BarChart3'),
+    FileText: createMockIcon('FileText'),
+    Shield: createMockIcon('Shield'),
+    LogOut: createMockIcon('LogOut'),
+    Clock: createMockIcon('Clock'),
+    CheckCircle: createMockIcon('CheckCircle'),
+    Users: createMockIcon('Users'),
+    Calendar: createMockIcon('Calendar'),
+    Database: createMockIcon('Database'),
+    TrendingUp: createMockIcon('TrendingUp'),
+    TrendingDown: createMockIcon('TrendingDown'),
+    Zap: createMockIcon('Zap'),
+    PieChart: createMockIcon('PieChart'),
+    LineChart: createMockIcon('LineChart'),
+    BarChart: createMockIcon('BarChart'),
+  }
+})
+
+// =============================================================================
+// React Query Mock
+// =============================================================================
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
+  QueryClient: vi.fn(() => ({
+    getQueryData: vi.fn(),
+    setQueryData: vi.fn(),
+    invalidateQueries: vi.fn(),
+    clear: vi.fn(),
+  })),
+  QueryClientProvider: ({ children }: { children: any }) => children,
+  useMutation: vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isLoading: false,
+    isError: false,
+    error: null,
+    reset: vi.fn(),
+  })),
+
+  useQueryClient: vi.fn(() => ({
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn(),
+  })),
 }))
 
 // =============================================================================

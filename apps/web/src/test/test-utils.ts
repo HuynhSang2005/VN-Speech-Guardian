@@ -4,12 +4,11 @@
  * Research: Enterprise testing patterns với RTL, MSW, và custom matchers
  */
 
-import { render, within, screen } from '@testing-library/react'
-import type { RenderOptions } from '@testing-library/react'
-import type { ReactElement, ReactNode } from 'react'
+import { render, RenderOptions, within, screen } from '@testing-library/react'
+import { ReactElement, ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ClerkProvider } from '@clerk/clerk-react'
-// TODO: Add TanStack Router testing setup
+import { BrowserRouter } from 'react-router-dom'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 
@@ -40,7 +39,7 @@ const AllTheProviders = ({
   clerkProps = {},
 }: {
   children: ReactNode
-  queryClient?: QueryClient | undefined
+  queryClient?: QueryClient
   withRouter?: boolean
   withQueryClient?: boolean
   withClerk?: boolean
@@ -72,10 +71,14 @@ const AllTheProviders = ({
     )
   }
 
-  // Skip router wrapping for now - will implement proper TanStack Router test setup
-  // if (withRouter) {
-  //   // TanStack Router testing setup would go here
-  // }
+  // Wrap với React Router
+  if (withRouter) {
+    component = (
+      <BrowserRouter>
+        {component}
+      </BrowserRouter>
+    )
+  }
 
   // Wrap với Clerk Provider
   if (withClerk) {
@@ -108,7 +111,7 @@ export const customRender = (
     ...renderOptions
   } = options
 
-  const WrapperWithProps = ({ children }: { children: ReactNode }) => (
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <AllTheProviders
       queryClient={queryClient}
       withRouter={withRouter}
@@ -122,7 +125,7 @@ export const customRender = (
 
   return {
     user: userEvent.setup(),
-    ...render(ui, { wrapper: WrapperWithProps, ...renderOptions }),
+    ...render(ui, { wrapper: Wrapper, ...renderOptions }),
   }
 }
 
@@ -152,7 +155,7 @@ export const expectFormValidation = async (
   await userEvent.click(submitButton)
 
   // Check for validation errors
-  for (const [, errorMessage] of Object.entries(expectedErrors)) {
+  for (const [fieldName, errorMessage] of Object.entries(expectedErrors)) {
     const errorElement = within(form).getByText(errorMessage)
     expect(errorElement).toBeInTheDocument()
   }
@@ -271,7 +274,7 @@ export const mockSocketIO = () => {
 // State Management Testing
 // =============================================================================
 
-export const createMockZustandStore = <T,>(initialState: T) => {
+export const createMockZustandStore = <T>(initialState: T) => {
   let state = initialState
 
   const getState = () => state

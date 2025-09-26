@@ -4,8 +4,7 @@
  * Research: Factory pattern với realistic Vietnamese content cho Speech Guardian
  */
 
-// VI: Simple mock data generation without external dependencies
-// Replaced faker with built-in JavaScript for better compatibility
+import { faker } from '@faker-js/faker';
 
 // =============================================================================
 // Helper Functions for Mock Data Generation
@@ -140,20 +139,20 @@ const KEYWORDS_BY_CATEGORY = {
 // =============================================================================
 
 export const createMockSession = (overrides: Partial<SessionDto> = {}): SessionDto => {
-  const startedAt = faker.date.recent(7) // Last 7 days
-  const endedAt = faker.datatype.boolean(0.7) 
-    ? faker.date.between(startedAt, new Date()) 
+  const startedAt = faker.date.recent({ days: 7 }) // Last 7 days
+  const endedAt = faker.datatype.boolean({ probability: { probability: 0.7 } }) 
+    ? faker.date.between({ from: startedAt, to: new Date() }) 
     : undefined
 
   const duration = endedAt 
     ? Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000)
     : undefined
 
-  const totalSegments = faker.datatype.number({ min: 5, max: 100 })
-  const totalDetections = faker.datatype.number({ min: 0, max: Math.floor(totalSegments * 0.3) })
+  const totalSegments = faker.number.int({ min: 5, max: 100 })
+  const totalDetections = faker.number.int({ min: 0, max: Math.floor(totalSegments * 0.3) })
 
   return {
-    id: faker.datatype.uuid(),
+    id: faker.string.uuid(),
     name: `Phiên ghi âm ${faker.date.recent().toLocaleDateString('vi-VN')}`,
     description: faker.lorem.sentence(),
     startedAt: startedAt.toISOString(),
@@ -164,12 +163,12 @@ export const createMockSession = (overrides: Partial<SessionDto> = {}): SessionD
       language: faker.helpers.arrayElement(['vi', 'en']),
       sensitivity: faker.helpers.arrayElement(['low', 'medium', 'high']),
       autoStop: faker.datatype.boolean(),
-      maxDuration: faker.helpers.maybe(() => faker.datatype.number({ min: 300, max: 3600 }), 0.5),
+      maxDuration: faker.helpers.maybe(() => faker.number.int({ min: 300, max: 3600 }), { probability: 0.5 }),
     },
     stats: {
       totalSegments,
       totalDetections,
-      avgConfidence: faker.datatype.float({ min: 0.6, max: 0.98, precision: 0.01 }),
+      avgConfidence: faker.number.float({ min: 0.6, max: 0.98, precision: 0.01 }),
     },
     createdAt: startedAt.toISOString(),
     updatedAt: faker.date.between(startedAt, new Date()).toISOString(),
@@ -188,7 +187,7 @@ export const createMockSessionList = (count = 10): SessionDto[] => {
 export const createMockDetection = (overrides: Partial<DetectionDto> = {}): DetectionDto => {
   const type = faker.helpers.arrayElement(['CLEAN', 'OFFENSIVE', 'HATE', 'SPAM', 'TOXIC'])
   const severity = faker.helpers.arrayElement(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
-  const confidence = faker.datatype.float({ min: 0.5, max: 0.99, precision: 0.01 })
+  const confidence = faker.number.float({ min: 0.5, max: 0.99, precision: 0.01 })
   
   // Generate realistic Vietnamese content
   const isOffensive = ['OFFENSIVE', 'HATE', 'TOXIC'].includes(type)
@@ -199,12 +198,12 @@ export const createMockDetection = (overrides: Partial<DetectionDto> = {}): Dete
   const context = `... ${snippet} ...`
   const keywords = KEYWORDS_BY_CATEGORY[type as keyof typeof KEYWORDS_BY_CATEGORY] || []
   
-  const startMs = faker.datatype.number({ min: 1000, max: 300000 }) // 1s to 5min
-  const endMs = startMs + faker.datatype.number({ min: 1000, max: 5000 }) // 1-5s duration
+  const startMs = faker.number.int({ min: 1000, max: 300000 }) // 1s to 5min
+  const endMs = startMs + faker.number.int({ min: 1000, max: 5000 }) // 1-5s duration
 
   return {
-    id: faker.datatype.uuid(),
-    sessionId: faker.datatype.uuid(),
+    id: faker.string.uuid(),
+    sessionId: faker.string.uuid(),
     type,
     severity,
     confidence,
@@ -214,7 +213,7 @@ export const createMockDetection = (overrides: Partial<DetectionDto> = {}): Dete
     endMs,
     recommended_action: faker.helpers.arrayElement(['LOG', 'WARN', 'BLOCK', 'ESCALATE']),
     metadata: {
-      keywords: faker.helpers.arrayElements(keywords, faker.datatype.number({ min: 1, max: 3 })),
+      keywords: faker.helpers.arrayElements(keywords, faker.number.int({ min: 1, max: 3 })),
       category: type.toLowerCase(),
       processed_by: faker.helpers.arrayElement(['PHOBERT', 'RULE_ENGINE', 'HYBRID']),
     },
@@ -236,8 +235,8 @@ export const createMockDetectionList = (sessionId: string, count = 5): Detection
 export const createMockTranscript = (overrides: Partial<TranscriptDto> = {}): TranscriptDto => {
   const text = faker.helpers.arrayElement(VIETNAMESE_PHRASES)
   const words = text.split(' ')
-  const startMs = faker.datatype.number({ min: 0, max: 300000 })
-  const totalDuration = faker.datatype.number({ min: 2000, max: 8000 })
+  const startMs = faker.number.int({ min: 0, max: 300000 })
+  const totalDuration = faker.number.int({ min: 2000, max: 8000 })
   const endMs = startMs + totalDuration
 
   // Generate word-level timestamps
@@ -249,20 +248,20 @@ export const createMockTranscript = (overrides: Partial<TranscriptDto> = {}): Tr
       word,
       startMs: Math.floor(wordStartMs),
       endMs: Math.floor(wordEndMs),
-      confidence: faker.datatype.float({ min: 0.7, max: 0.99, precision: 0.01 }),
+      confidence: faker.number.float({ min: 0.7, max: 0.99, precision: 0.01 }),
     }
   })
 
   return {
-    id: faker.datatype.uuid(),
-    sessionId: faker.datatype.uuid(),
+    id: faker.string.uuid(),
+    sessionId: faker.string.uuid(),
     text,
-    confidence: faker.datatype.float({ min: 0.8, max: 0.99, precision: 0.01 }),
+    confidence: faker.number.float({ min: 0.8, max: 0.99, precision: 0.01 }),
     startMs,
     endMs,
-    speaker: faker.helpers.maybe(() => `Speaker ${faker.datatype.number({ min: 1, max: 3 })}`, 0.3),
+    speaker: faker.helpers.maybe(() => `Speaker ${faker.number.int({ min: 1, max: 3 })}`, 0.3),
     language: faker.helpers.arrayElement(['vi', 'en']),
-    is_final: faker.datatype.boolean(0.8),
+    is_final: faker.datatype.boolean({ probability: 0.8 }),
     words: wordTimings,
     createdAt: faker.date.recent().toISOString(),
     ...overrides,
@@ -284,10 +283,10 @@ export const createMockTranscriptList = (sessionId: string, count = 20): Transcr
 // =============================================================================
 
 export const createMockStatsOverview = (overrides: Partial<StatsOverviewDto> = {}): StatsOverviewDto => {
-  const totalSessions = faker.datatype.number({ min: 50, max: 500 })
-  const activeSessions = faker.datatype.number({ min: 0, max: 10 })
-  const totalMinutesProcessed = faker.datatype.number({ min: 1000, max: 10000 })
-  const detectionsToday = faker.datatype.number({ min: 5, max: 50 })
+  const totalSessions = faker.number.int({ min: 50, max: 500 })
+  const activeSessions = faker.number.int({ min: 0, max: 10 })
+  const totalMinutesProcessed = faker.number.int({ min: 1000, max: 10000 })
+  const detectionsToday = faker.number.int({ min: 5, max: 50 })
   
   // Calculate safety score based on detections
   const safetyScore = Math.max(0, 100 - (detectionsToday * 2))
@@ -300,17 +299,17 @@ export const createMockStatsOverview = (overrides: Partial<StatsOverviewDto> = {
     detectionsToday,
     trends: {
       sessions: {
-        value: faker.datatype.number({ min: -15, max: 25 }),
+        value: faker.number.int({ min: -15, max: 25 }),
         period: '7d',
         direction: faker.helpers.arrayElement(['up', 'down']),
       },
       detections: {
-        value: faker.datatype.number({ min: -30, max: 40 }),
+        value: faker.number.int({ min: -30, max: 40 }),
         period: '24h',
         direction: faker.helpers.arrayElement(['up', 'down']),
       },
       safety: {
-        value: faker.datatype.number({ min: -10, max: 15 }),
+        value: faker.number.int({ min: -10, max: 15 }),
         period: '7d',
         direction: faker.helpers.arrayElement(['up', 'down']),
       },
@@ -353,7 +352,7 @@ export const createMockUserProfile = (overrides: Partial<UserProfileDto> = {}): 
   const lastName = faker.name.lastName()
   
   return {
-    id: faker.datatype.uuid(),
+    id: faker.string.uuid(),
     email: faker.internet.email(firstName, lastName),
     name: `${firstName} ${lastName}`,
     avatar: faker.helpers.maybe(() => faker.internet.avatar(), 0.6),
@@ -361,12 +360,12 @@ export const createMockUserProfile = (overrides: Partial<UserProfileDto> = {}): 
     preferences: {
       language: faker.helpers.arrayElement(['vi', 'en']),
       theme: faker.helpers.arrayElement(['light', 'dark']),
-      notifications: faker.datatype.boolean(0.8),
-      autoSave: faker.datatype.boolean(0.9),
+      notifications: faker.datatype.boolean({ probability: 0.8 }),
+      autoSave: faker.datatype.boolean({ probability: 0.9 }),
     },
     stats: {
-      totalSessions: faker.datatype.number({ min: 0, max: 100 }),
-      totalMinutes: faker.datatype.number({ min: 0, max: 5000 }),
+      totalSessions: faker.number.int({ min: 0, max: 100 }),
+      totalMinutes: faker.number.int({ min: 0, max: 5000 }),
       joinedAt: faker.date.past().toISOString(),
     },
     ...overrides,
