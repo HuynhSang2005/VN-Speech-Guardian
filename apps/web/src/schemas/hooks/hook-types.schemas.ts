@@ -22,11 +22,19 @@ export const WebSocketHookOptionsSchema = z.object({
   reconnectAttempts: z.number().default(3),
   reconnectInterval: z.number().default(1000),
   protocols: z.union([z.string(), z.array(z.string())]).optional(),
-  onOpen: z.function(z.tuple([z.any()]), z.void()).optional(),
-  onClose: z.function(z.tuple([z.any()]), z.void()).optional(),
-  onError: z.function(z.tuple([z.any()]), z.void()).optional(),
-  onMessage: z.function(z.tuple([z.any()]), z.void()).optional()
+  onOpen: z.function().optional(),
+  onClose: z.function().optional(),
+  onError: z.function().optional(),
+  onMessage: z.function().optional()
 });
+
+// TypeScript interface with proper callback types
+export interface WebSocketHookCallbacks {
+  onOpen?: (event: Event) => void;
+  onClose?: (event: CloseEvent) => void;
+  onError?: (event: ErrorEvent) => void;
+  onMessage?: (event: MessageEvent) => void;
+}
 
 export type TWebSocketHookOptions = z.infer<typeof WebSocketHookOptionsSchema>;
 
@@ -93,8 +101,8 @@ export type TDebounceOptions = z.infer<typeof DebounceOptionsSchema>;
 
 export const LocalStorageOptionsSchema = z.object({
   serializer: z.object({
-    read: z.function(z.tuple([z.string()]), z.unknown()),
-    write: z.function(z.tuple([z.unknown()]), z.string())
+    read: z.function(),
+    write: z.function()
   }).default({
     read: (value: string) => JSON.parse(value),
     write: (value: any) => JSON.stringify(value)
@@ -113,8 +121,8 @@ export const MediaPermissionStateSchema = z.enum(['granted', 'denied', 'prompt']
 export type TMediaPermissionState = z.infer<typeof MediaPermissionStateSchema>;
 
 export const MediaConstraintsSchema = z.object({
-  video: z.union([z.boolean(), z.record(z.unknown())]).default(false),
-  audio: z.union([z.boolean(), z.record(z.unknown())]).default(true)
+  video: z.union([z.boolean(), z.record(z.string(), z.unknown())]).default(false),
+  audio: z.union([z.boolean(), z.record(z.string(), z.unknown())]).default(true)
 });
 
 export type TMediaConstraints = z.infer<typeof MediaConstraintsSchema>;

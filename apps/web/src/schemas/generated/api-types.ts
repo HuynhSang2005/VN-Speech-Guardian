@@ -4,576 +4,576 @@
  */
 
 export interface paths {
-  '/health': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get: operations['HealthController_health']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/ready': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get: operations['HealthController_ready']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/metrics': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get: operations['MetricsController_metrics']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/auth/clerk': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Verify Clerk token and sync user to database
-     * @description Send Clerk JWT either in request body or Authorization header. User will be created/synced in database.
-     */
-    post: operations['AuthController_verifyClerkToken']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/auth/me': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get current user info
-     * @description Returns current authenticated user information
-     */
-    get: operations['AuthController_getCurrentUser']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/sessions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List sessions (paged) */
-    get: operations['SessionsController_list']
-    put?: never
-    /** Create a new session */
-    post: operations['SessionsController_create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/sessions/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get session detail */
-    get: operations['SessionsController_get']
-    put?: never
-    post?: never
-    /** Delete a session */
-    delete: operations['SessionsController_remove']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/sessions/{id}/transcripts': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List transcripts for a session */
-    get: operations['SessionsController_transcripts']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/api/stats/overview': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get: operations['StatsController_overview']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HealthController_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HealthController_ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MetricsController_metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/clerk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Clerk token and sync user to database
+         * @description Send Clerk JWT either in request body or Authorization header. User will be created/synced in database.
+         */
+        post: operations["AuthController_verifyClerkToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user info
+         * @description Returns current authenticated user information
+         */
+        get: operations["AuthController_getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List sessions (paged) */
+        get: operations["SessionsController_list"];
+        put?: never;
+        /** Create a new session */
+        post: operations["SessionsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get session detail */
+        get: operations["SessionsController_get"];
+        put?: never;
+        post?: never;
+        /** Delete a session */
+        delete: operations["SessionsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{id}/transcripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List transcripts for a session */
+        get: operations["SessionsController_transcripts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stats/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StatsController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-export type webhooks = Record<string, never>
+export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    UserSwaggerDto: {
-      id: string
-      clerkId: string
-      email: string
-      role: string
-    }
-    TranscriptDto: {
-      /**
-       * @description Transcript id
-       * @example t_01
-       */
-      id: string
-      /**
-       * @description Session id this transcript belongs to
-       * @example s_01
-       */
-      sessionId: string
-      /**
-       * @description Segment index (order within session)
-       * @example 0
-       */
-      segIdx: number
-      /**
-       * @description Recognized text for the segment
-       * @example Xin chào
-       */
-      text: string
-      /**
-       * @description Start time in milliseconds
-       * @example 0
-       */
-      startMs: number
-      /**
-       * @description End time in milliseconds
-       * @example 1200
-       */
-      endMs: number
-    }
-    DetectionDto: {
-      /**
-       * @description Detection id
-       * @example cl1n34bleid
-       */
-      id: string
-      /**
-       * @description Related session id
-       * @example sess_123
-       */
-      sessionId: string
-      /**
-       * @description Related transcript id (may be null)
-       * @example null
-       */
-      transcriptId: string | null
-      /**
-       * @example OFFENSIVE
-       * @enum {string}
-       */
-      label: 'CLEAN' | 'OFFENSIVE' | 'HATE'
-      /**
-       * @description Confidence score (0..1)
-       * @example 0.92
-       */
-      score: number
-      /**
-       * @description Start time in milliseconds
-       * @example 120
-       */
-      startMs: number
-      /**
-       * @description End time in milliseconds
-       * @example 800
-       */
-      endMs: number
-      /**
-       * @description Snippet from transcript
-       * @example some bad words
-       */
-      snippet: string
-      /**
-       * @example HIGH
-       * @enum {string}
-       */
-      severity: 'LOW' | 'MEDIUM' | 'HIGH'
-      /**
-       * @description Timestamp when detection was created
-       * @example 2025-09-20T18:00:16.781Z
-       */
-      createdAt: string
-    }
-    SessionDto: {
-      /**
-       * @description Session id
-       * @example s_123
-       */
-      id: string
-      /**
-       * @description User id owning this session
-       * @example u_123
-       */
-      userId: string
-      /** @example web */
-      device?: string
-      /** @example vi */
-      lang: string
-      /** @example 2025-09-15T00:00:00.000Z */
-      startedAt: string
-      /** @example null */
-      endedAt: Record<string, never> | null
-    }
-    SessionResponseDto: {
-      /** @example true */
-      success: boolean
-      data: components['schemas']['SessionDto']
-    }
-    SessionListItemDto: {
-      items: components['schemas']['SessionDto'][]
-      /** @example 0 */
-      total: number
-    }
-    SessionListResponseDto: {
-      /** @example true */
-      success: boolean
-      data: components['schemas']['SessionListItemDto']
-    }
-    SessionCreateResponseDto: {
-      /** @example true */
-      success: boolean
-      data: components['schemas']['SessionDto']
-    }
-    TranscriptListItemDto: {
-      items: components['schemas']['TranscriptDto'][]
-      /** @example 0 */
-      total: number
-    }
-    TranscriptListResponseDto: {
-      /** @example true */
-      success: boolean
-      data: components['schemas']['TranscriptListItemDto']
-    }
-    CreateSessionDto: {
-      userId: string
-      device?: string
-      /** @default vi */
-      lang: string
-    }
-    StatsOverviewDto: {
-      /** @example 10 */
-      totalSessions: number
-      /** @example 20 */
-      totalDetections: number
-      /** @example 30 */
-      toxicPercent: number
-    }
-    StatsOverviewResponseDto: {
-      /** @example true */
-      success: boolean
-      data: components['schemas']['StatsOverviewDto']
-    }
-  }
-  responses: never
-  parameters: never
-  requestBodies: never
-  headers: never
-  pathItems: never
+    schemas: {
+        UserSwaggerDto: {
+            id: string;
+            clerkId: string;
+            email: string;
+            role: string;
+        };
+        TranscriptDto: {
+            /**
+             * @description Transcript id
+             * @example t_01
+             */
+            id: string;
+            /**
+             * @description Session id this transcript belongs to
+             * @example s_01
+             */
+            sessionId: string;
+            /**
+             * @description Segment index (order within session)
+             * @example 0
+             */
+            segIdx: number;
+            /**
+             * @description Recognized text for the segment
+             * @example Xin chào
+             */
+            text: string;
+            /**
+             * @description Start time in milliseconds
+             * @example 0
+             */
+            startMs: number;
+            /**
+             * @description End time in milliseconds
+             * @example 1200
+             */
+            endMs: number;
+        };
+        DetectionDto: {
+            /**
+             * @description Detection id
+             * @example cl1n34bleid
+             */
+            id: string;
+            /**
+             * @description Related session id
+             * @example sess_123
+             */
+            sessionId: string;
+            /**
+             * @description Related transcript id (may be null)
+             * @example null
+             */
+            transcriptId: string | null;
+            /**
+             * @example OFFENSIVE
+             * @enum {string}
+             */
+            label: "CLEAN" | "OFFENSIVE" | "HATE";
+            /**
+             * @description Confidence score (0..1)
+             * @example 0.92
+             */
+            score: number;
+            /**
+             * @description Start time in milliseconds
+             * @example 120
+             */
+            startMs: number;
+            /**
+             * @description End time in milliseconds
+             * @example 800
+             */
+            endMs: number;
+            /**
+             * @description Snippet from transcript
+             * @example some bad words
+             */
+            snippet: string;
+            /**
+             * @example HIGH
+             * @enum {string}
+             */
+            severity: "LOW" | "MEDIUM" | "HIGH";
+            /**
+             * @description Timestamp when detection was created
+             * @example 2025-09-20T18:00:16.781Z
+             */
+            createdAt: string;
+        };
+        SessionDto: {
+            /**
+             * @description Session id
+             * @example s_123
+             */
+            id: string;
+            /**
+             * @description User id owning this session
+             * @example u_123
+             */
+            userId: string;
+            /** @example web */
+            device?: string;
+            /** @example vi */
+            lang: string;
+            /** @example 2025-09-15T00:00:00.000Z */
+            startedAt: string;
+            /** @example null */
+            endedAt: Record<string, never> | null;
+        };
+        SessionResponseDto: {
+            /** @example true */
+            success: boolean;
+            data: components["schemas"]["SessionDto"];
+        };
+        SessionListItemDto: {
+            items: components["schemas"]["SessionDto"][];
+            /** @example 0 */
+            total: number;
+        };
+        SessionListResponseDto: {
+            /** @example true */
+            success: boolean;
+            data: components["schemas"]["SessionListItemDto"];
+        };
+        SessionCreateResponseDto: {
+            /** @example true */
+            success: boolean;
+            data: components["schemas"]["SessionDto"];
+        };
+        TranscriptListItemDto: {
+            items: components["schemas"]["TranscriptDto"][];
+            /** @example 0 */
+            total: number;
+        };
+        TranscriptListResponseDto: {
+            /** @example true */
+            success: boolean;
+            data: components["schemas"]["TranscriptListItemDto"];
+        };
+        CreateSessionDto: {
+            userId: string;
+            device?: string;
+            /** @default vi */
+            lang: string;
+        };
+        StatsOverviewDto: {
+            /** @example 10 */
+            totalSessions: number;
+            /** @example 20 */
+            totalDetections: number;
+            /** @example 30 */
+            toxicPercent: number;
+        };
+        StatsOverviewResponseDto: {
+            /** @example true */
+            success: boolean;
+            data: components["schemas"]["StatsOverviewDto"];
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-export type $defs = Record<string, never>
+export type $defs = Record<string, never>;
 export interface operations {
-  HealthController_health: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  HealthController_ready: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  MetricsController_metrics: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  AuthController_verifyClerkToken: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': {
-          token?: string
-        }
-      }
-    }
-    responses: {
-      /** @description Successfully verified token and synced user */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['UserSwaggerDto']
-        }
-      }
-      /** @description Invalid or expired Clerk token */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  AuthController_getCurrentUser: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Current user information */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  SessionsController_list: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: string
-        /** @description Items per page */
-        perPage?: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SessionListResponseDto']
-        }
-      }
-    }
-  }
-  SessionsController_create: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateSessionDto']
-      }
-    }
-    responses: {
-      /** @description Session created */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SessionCreateResponseDto']
-        }
-      }
-    }
-  }
-  SessionsController_get: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description Session id */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Session object */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SessionResponseDto']
-        }
-      }
-      /** @description Not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  SessionsController_remove: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description Session id */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  SessionsController_transcripts: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description Session id */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Array of transcripts */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['TranscriptListResponseDto']
-        }
-      }
-    }
-  }
-  StatsController_overview: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Overview stats */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['StatsOverviewResponseDto']
-        }
-      }
-    }
-  }
+    HealthController_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HealthController_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MetricsController_metrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_verifyClerkToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successfully verified token and synced user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSwaggerDto"];
+                };
+            };
+            /** @description Invalid or expired Clerk token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SessionsController_list: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: string;
+                /** @description Items per page */
+                perPage?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponseDto"];
+                };
+            };
+        };
+    };
+    SessionsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSessionDto"];
+            };
+        };
+        responses: {
+            /** @description Session created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionCreateResponseDto"];
+                };
+            };
+        };
+    };
+    SessionsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Session id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session object */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponseDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SessionsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Session id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SessionsController_transcripts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Session id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of transcripts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptListResponseDto"];
+                };
+            };
+        };
+    };
+    StatsController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overview stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatsOverviewResponseDto"];
+                };
+            };
+        };
+    };
 }

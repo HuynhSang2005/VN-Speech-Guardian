@@ -300,7 +300,7 @@ export const AppErrorSchema = z.object({
   name: z.string().default('AppError'),
   message: z.string().min(1),
   code: ErrorCodeSchema,
-  context: z.record(z.any()).optional(),
+  context: z.record(z.string(), z.any()).optional(),
   timestamp: z.date(),
   sessionId: z.string().optional(),
   stack: z.string().optional(),

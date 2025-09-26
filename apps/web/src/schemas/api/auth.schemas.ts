@@ -158,8 +158,8 @@ export const ClerkUserSchema = z.object({
   lastName: z.string().nullable(),
   fullName: z.string().nullable(),
   imageUrl: z.string().url().nullable(),
-  publicMetadata: z.record(z.any()).optional(),
-  privateMetadata: z.record(z.any()).optional(),
+  publicMetadata: z.record(z.string(), z.any()).optional(),
+  privateMetadata: z.record(z.string(), z.any()).optional(),
   createdAt: z.number(), // Clerk uses timestamps
   updatedAt: z.number(),
 });
