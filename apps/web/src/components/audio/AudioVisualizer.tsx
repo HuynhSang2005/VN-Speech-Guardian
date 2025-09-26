@@ -22,7 +22,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = React.memo(({
   className = '',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationIdRef = useRef<number | undefined>()
+  const animationIdRef = useRef<number | undefined>(undefined)
 
   // Size mappings
   const sizeMap = {

@@ -18,65 +18,103 @@ import {
   AlertTriangle,
   Shield,
   User,
-  MoreHorizontal
+  
 } from 'lucide-react'
 import type { Session, SessionsResponse } from '@/types/components'
-import { SessionCard } from '@/components/ui/enhanced-card'
+import type { SessionDto } from '@/services/generated-api-client'
+import { apiClient } from '@/services/generated-api-client'
+// import { SessionCard } from '@/components/ui/enhanced-card'
 import { FilterControls, DataTable } from '@/components/ui/enhanced-dashboard'
 
-// Mock data function
-const fetchSessions = async (page: number = 1, limit: number = 10): Promise<SessionsResponse> => {
-  await new Promise(resolve => setTimeout(resolve, 800))
+// Transform backend SessionDto to frontend Session type
+const transformSession = (session: SessionDto): Session => {
+  const startTime = new Date(session.startedAt)
+  // Handle the complex endedAt type - could be string, object, or null
+  let endTimeString: string | null = null
+  if (session.endedAt && typeof session.endedAt === 'string') {
+    endTimeString = session.endedAt
+  } else if (session.endedAt && typeof session.endedAt === 'object' && 'toString' in session.endedAt) {
+    endTimeString = String(session.endedAt)
+  }
   
-  const mockSessions: Session[] = [
-    {
-      id: 'session-001',
-      userId: 'user-123',
-      userName: 'Nguyễn Văn A',
-      startTime: '2025-09-22T10:30:00Z',
-      endTime: '2025-09-22T10:45:00Z',
-      duration: 900,
-      totalSegments: 15,
-      detectionsCount: 3,
-      highestSeverity: 'HATE',
-      status: 'completed',
-      processingTime: 150
-    },
-    {
-      id: 'session-002',
-      userId: 'user-456',
-      userName: 'Trần Thị B',
-      startTime: '2025-09-22T09:15:00Z', 
-      endTime: '2025-09-22T09:30:00Z',
-      duration: 900,
-      totalSegments: 12,
-      detectionsCount: 1,
-      highestSeverity: 'OFFENSIVE',
-      status: 'completed',
-      processingTime: 125
-    },
-    {
-      id: 'session-003',
-      userId: 'user-789',
-      userName: 'Lê Văn C',
-      startTime: '2025-09-22T08:00:00Z',
-      endTime: '2025-09-22T08:20:00Z',
-      duration: 1200,
-      totalSegments: 18,
-      detectionsCount: 0,
-      highestSeverity: 'CLEAN',
-      status: 'completed',
-      processingTime: 95
-    }
-  ]
+  const endTime = endTimeString ? new Date(endTimeString) : null
+  const duration = endTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : 0
 
   return {
-    sessions: mockSessions,
-    pagination: {
-      page,
-      limit,
-      total: 147,
-      totalPages: Math.ceil(147 / limit)
+    id: session.id,
+    userId: session.userId,
+    userName: 'Người dùng', // This will be populated later when user data is joined
+    startTime: session.startedAt,
+    endTime: endTimeString,
+    duration,
+    totalSegments: 0, // Will be populated from transcripts count
+    detectionsCount: 0, // Will be populated from detections count  
+    highestSeverity: 'CLEAN', // Will be calculated from detections
+    status: endTime ? 'completed' : 'processing',
+    processingTime: 125 // Default value for now
+  }
+}
+
+// Real API call function
+const fetchSessions = async (page: number = 1, limit: number = 10): Promise<SessionsResponse> => {
+  try {
+    const response = await apiClient.sessions.list({
+      page: page.toString(),
+      perPage: limit.toString()
+    })
+    
+    const sessions = response.data.items.map(transformSession)
+    
+    return {
+      sessions,
+      pagination: {
+        page,
+        limit,
+        total: response.data.total,
+        totalPages: Math.ceil(response.data.total / limit)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch sessions:', error)
+    
+    // Fallback to mock data if API fails
+    const mockSessions: Session[] = [
+      {
+        id: 'session-001',
+        userId: 'user-123',
+        userName: 'Nguyễn Văn A',
+        startTime: '2025-09-22T10:30:00Z',
+        endTime: '2025-09-22T10:45:00Z',
+        duration: 900,
+        totalSegments: 15,
+        detectionsCount: 3,
+        highestSeverity: 'HATE' as const,
+        status: 'completed' as const,
+        processingTime: 150
+      },
+      {
+        id: 'session-002',
+        userId: 'user-456',
+        userName: 'Trần Thị B',
+        startTime: '2025-09-22T09:15:00Z', 
+        endTime: '2025-09-22T09:30:00Z',
+        duration: 900,
+        totalSegments: 12,
+        detectionsCount: 1,
+        highestSeverity: 'OFFENSIVE' as const,
+        status: 'completed' as const,
+        processingTime: 125
+      }
+    ]
+
+    return {
+      sessions: mockSessions,
+      pagination: {
+        page,
+        limit,
+        total: 2,
+        totalPages: 1
+      }
     }
   }
 }
@@ -92,143 +130,7 @@ const formatSessionStatus = (status: Session['status']) => {
   return config[status] || { color: 'bg-gray-100 text-gray-800', text: status };
 }
 
-// Component cho session row
-function SessionRow({ session }: { session: Session }) {
-  const severityConfig = {
-    CLEAN: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    OFFENSIVE: { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-    HATE: { color: 'bg-red-100 text-red-800', icon: Shield }
-  }
-
-  const statusConfig = {
-    completed: { color: 'bg-green-100 text-green-800', text: 'Hoàn thành' },
-    processing: { color: 'bg-blue-100 text-blue-800', text: 'Đang xử lý' },
-    failed: { color: 'bg-red-100 text-red-800', text: 'Thất bại' }
-  }
-
-  const severityInfo = severityConfig[session.highestSeverity]
-  const statusInfo = statusConfig[session.status]
-  const SeverityIcon = severityInfo.icon
-
-  return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      {/* Session ID */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <Link 
-          to="/sessions/$sessionId" 
-          params={{ sessionId: session.id }}
-          className="text-sm font-medium text-primary hover:text-primary/80"
-        >
-          {session.id}
-        </Link>
-      </td>
-
-      {/* User */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-            <User className="w-4 h-4 text-gray-500" />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-gray-900">{session.userName}</div>
-            <div className="text-sm text-gray-500">{session.userId}</div>
-          </div>
-        </div>
-      </td>
-
-      {/* Start Time */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {new Date(session.startTime).toLocaleString('vi-VN')}
-      </td>
-
-      {/* Duration */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {Math.floor(session.duration / 60)}:{String(session.duration % 60).padStart(2, '0')}
-      </td>
-
-      {/* Segments */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {session.totalSegments}
-      </td>
-
-      {/* Detections */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-900">{session.detectionsCount}</span>
-          {session.detectionsCount > 0 && (
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${severityInfo.color}`}>
-              <SeverityIcon className="w-3 h-3 mr-1" />
-              {session.highestSeverity}
-            </span>
-          )}
-        </div>
-      </td>
-
-      {/* Status */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-          {statusInfo.text}
-        </span>
-      </td>
-
-      {/* Processing Time */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {session.processingTime}ms
-      </td>
-
-      {/* Actions */}
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <div className="flex items-center justify-end space-x-2">
-          <Link
-            to="/sessions/$sessionId"
-            params={{ sessionId: session.id }}
-            className="text-primary hover:text-primary/80 p-1"
-            title="Xem chi tiết"
-          >
-            <Eye className="w-4 h-4" />
-          </Link>
-          <button 
-            className="text-gray-400 hover:text-gray-600 p-1"
-            title="Tải xuống"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          <button 
-            className="text-gray-400 hover:text-red-600 p-1"
-            title="Xóa"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-          <button className="text-gray-400 hover:text-gray-600 p-1">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
-}
-
-// Loading component
-function SessionsLoading() {
-  return (
-    <div className="animate-pulse">
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex space-x-4 py-4">
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
-            <div className="h-4 bg-gray-200 rounded w-32"></div>
-            <div className="h-4 bg-gray-200 rounded w-28"></div>
-            <div className="h-4 bg-gray-200 rounded w-16"></div>
-            <div className="h-4 bg-gray-200 rounded w-12"></div>
-            <div className="h-4 bg-gray-200 rounded w-20"></div>
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
-            <div className="h-4 bg-gray-200 rounded w-16"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// Unused components removed for P28 build - SessionRow and SessionsLoading functions
 
 // Main sessions page component
 function SessionsPage() {

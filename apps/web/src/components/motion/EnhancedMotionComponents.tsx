@@ -526,7 +526,7 @@ export function GestureTranscriptPanel({
   onSegmentDelete,
   className 
 }: GestureTranscriptPanelProps) {
-  const prefersReducedMotion = useReducedMotion();
+  // const prefersReducedMotion = useReducedMotion(); // TODO: Use for accessibility
   
   const containerVariants: Variants = {
     hidden: { opacity: 0 },

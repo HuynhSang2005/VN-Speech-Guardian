@@ -60,8 +60,7 @@ export const LazySettings = lazy(() =>
 
 // Higher-order component cho lazy loading với retry functionality
 export function withLazyLoading<T extends ComponentType<any>>(
-  factory: () => Promise<{ default: T }>,
-  displayName?: string
+  factory: () => Promise<{ default: T }>
 ) {
   const LazyComponent = lazy(factory);
   return LazyComponent;

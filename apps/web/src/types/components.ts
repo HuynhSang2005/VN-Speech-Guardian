@@ -69,7 +69,7 @@ export interface Session {
   userId: string;
   userName: string;
   startTime: string;
-  endTime: string;
+  endTime: string | null; // null for ongoing sessions
   duration: number; // in seconds
   totalSegments: number;
   detectionsCount: number;

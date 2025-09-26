@@ -33,6 +33,7 @@ interface SeverityData {
   name: string;
   value: number;
   color: string;
+  [key: string]: any; // Index signature for Recharts ChartDataInput compatibility
 }
 
 interface HourlyActivityData {
@@ -171,7 +172,7 @@ function SeverityChart({
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+            label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(1)}%`}
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"
@@ -277,12 +278,21 @@ export function AnalyticsCharts({
     <div className={className}>
       {/* Top row - Timeline and Severity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <TimelineChart data={chartsData.timeline} onChartClick={onChartClick} />
-        <SeverityChart data={chartsData.severity} onChartClick={onChartClick} />
+        <TimelineChart 
+          data={chartsData.timeline} 
+          {...(onChartClick && { onChartClick })}
+        />
+        <SeverityChart 
+          data={chartsData.severity} 
+          {...(onChartClick && { onChartClick })}
+        />
       </div>
       
       {/* Bottom row - Hourly Activity */}
-      <ActivityChart data={chartsData.hourlyActivity} onChartClick={onChartClick} />
+      <ActivityChart 
+        data={chartsData.hourlyActivity} 
+        {...(onChartClick && { onChartClick })}
+      />
     </div>
   );
 }

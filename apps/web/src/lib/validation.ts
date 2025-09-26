@@ -3,7 +3,8 @@
  * Core utilities theo backend patterns để maintain consistency
  */
 
-import { z, ZodError, ZodSchema } from 'zod';
+import { z, ZodError } from 'zod';
+import type { ZodSchema } from 'zod';
 
 // =============================================================================
 // Safe Parsing với Detailed Error Handling

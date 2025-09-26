@@ -90,9 +90,9 @@ function LiveProcessingPage() {
           <div className="xl:col-span-2 flex flex-col items-center justify-center">
             <AudioVisualizer
               isActive={sessionState === 'recording'}
-              audioStream={audioStream ?? undefined}
+              {...(audioStream && { audioStream })}
               size="xl"
-              variant="circular"
+              variant="circular" 
               color="#10B981"
               backgroundColor="transparent"
               className="mb-8"

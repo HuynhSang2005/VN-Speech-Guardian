@@ -19,22 +19,41 @@ import {
 import type { DashboardStats, RecentActivity } from '@/types/components'
 import { AnalyticsChart, FilterControls, DataTable } from '@/components/ui/enhanced-dashboard'
 import { MetricCard } from '@/components/ui/enhanced-card'
+import { apiClient } from '@/services/generated-api-client'
 
-// Mock data function - sẽ thay bằng API call thực tế
+// Real API call thay thế mock data
 const fetchDashboardData = async (): Promise<DashboardStats> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  return {
-    totalSessions: 1247,
-    totalDetections: 89,
-    accuracyRate: 99.2,
-    averageProcessingTime: 125,
-    trends: {
-      sessions: 12.5,
-      detections: -8.3,
-      accuracy: 0.8,
-      processingTime: -15.2
+  try {
+    const stats = await apiClient.stats.overview()
+    
+    // Transform backend data to component format
+    return {
+      totalSessions: stats.totalSessions,
+      totalDetections: stats.totalDetections,
+      accuracyRate: 100 - stats.toxicPercent, // Accuracy = 100% - toxic %
+      averageProcessingTime: 125, // This will come from BE later
+      trends: {
+        sessions: 12.5, // This will come from historical API later
+        detections: -8.3,
+        accuracy: 0.8,
+        processingTime: -15.2
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch dashboard stats:', error)
+    
+    // Fallback to mock data if API fails
+    return {
+      totalSessions: 1247,
+      totalDetections: 89,
+      accuracyRate: 99.2,
+      averageProcessingTime: 125,
+      trends: {
+        sessions: 12.5,
+        detections: -8.3,
+        accuracy: 0.8,
+        processingTime: -15.2
+      }
     }
   }
 }

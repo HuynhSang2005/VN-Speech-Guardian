@@ -7,13 +7,14 @@ import { io, Socket } from 'socket.io-client';
 import type { 
   WebSocketReadyState, 
   TWebSocketHookOptions,
+  WebSocketHookCallbacks,
   THookError 
 } from '@/schemas';
 import type { UseWebSocketReturn } from '@/types/hooks';
 
 export function useWebSocket(
   url: string,
-  options: Partial<TWebSocketHookOptions> = {}
+  options: Partial<TWebSocketHookOptions & WebSocketHookCallbacks> = {}
 ): UseWebSocketReturn {
   const [readyState, setReadyState] = useState<WebSocketReadyState>(WebSocket.CLOSED);
   const [lastMessage, setLastMessage] = useState<any>(null);

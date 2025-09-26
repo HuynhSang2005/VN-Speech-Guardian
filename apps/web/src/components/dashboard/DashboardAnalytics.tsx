@@ -5,6 +5,7 @@
  */
 
 import { Suspense, useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { 
   BarChart3, 
@@ -171,7 +172,7 @@ export function DashboardAnalytics({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionsPage, setSessionsPage] = useState(1);
   const [sessionsFilters, setSessionsFilters] = useState({});
-  const [sessionsSort, setSessionsSort] = useState({ field: 'startedAt', direction: 'desc' as const });
+  const [sessionsSort, setSessionsSort] = useState<{ field: string; direction: 'asc' | 'desc' }>({ field: 'startedAt', direction: 'desc' });
 
   // Dashboard stats query
   const { 
@@ -191,7 +192,6 @@ export function DashboardAnalytics({
   const { 
     data: sessionsData, 
     isLoading: sessionsLoading,
-    error: sessionsError
   } = useQuery({
     queryKey: ['dashboard-sessions', sessionsPage, sessionsFilters, sessionsSort],
     queryFn: () => fetchSessions({
@@ -218,9 +218,9 @@ export function DashboardAnalytics({
         { date: '2024-09-24', sessions: 198, detections: 11 },
       ],
       severity: [
-        { name: 'CLEAN', value: 100 - stats.toxicPercent, color: '#10B981' },
-        { name: 'OFFENSIVE', value: stats.toxicPercent * 0.7, color: '#F59E0B' },
-        { name: 'HATE', value: stats.toxicPercent * 0.3, color: '#EF4444' },
+        { name: 'CLEAN', value: Math.max(100 - (stats.totalDetections * 10), 60), color: '#10B981' },
+        { name: 'OFFENSIVE', value: Math.min(stats.totalDetections * 7, 30), color: '#F59E0B' },
+        { name: 'HATE', value: Math.min(stats.totalDetections * 3, 10), color: '#EF4444' },
       ],
       hourlyActivity: Array.from({ length: 24 }, (_, i) => ({
         hour: i,
