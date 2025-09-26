@@ -71,7 +71,7 @@ async function createSessionAction(
   const newSession: Session = {
     id: `session-${Date.now()}`,
     name: formData.name,
-    description: formData.description || undefined,
+    ...(formData.description && { description: formData.description }),
     startedAt: new Date().toISOString(),
     lang: formData.language
   };
@@ -132,7 +132,7 @@ export function EnhancedSessionForm({
         const optimisticSession: Session = {
           id: `temp-${Date.now()}`,
           name: data.name,
-          description: data.description || undefined,
+          ...(data.description && { description: data.description }),
           startedAt: new Date().toISOString(),
           lang: data.language,
         };
