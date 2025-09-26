@@ -40,7 +40,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.47.0",
+    "@clerk/tanstack-react-start": "^0.24.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -87,6 +87,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
     "@eslint/js": "^9.33.0",
+    "@faker-js/faker": "^10.0.0",
     "@playwright/test": "^1.49.1",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",

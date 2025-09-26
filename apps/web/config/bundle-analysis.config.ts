@@ -5,7 +5,7 @@
 
 import { defineConfig, type PluginOption } from 'vite';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { resolve } from 'path';
+// import { resolve } from 'path';
 
 // Production bundle analysis plugins configuration
 export const bundleAnalysisPlugins: PluginOption[] = [
@@ -89,10 +89,7 @@ export const productionChunkingConfig = {
       },
       
       // Chunk naming for better caching
-      chunkFileNames: (chunkInfo: any) => {
-        const facadeModuleId = chunkInfo.facadeModuleId 
-          ? chunkInfo.facadeModuleId.split('/').pop() 
-          : 'chunk';
+      chunkFileNames: () => {
         return `js/[name]-[hash].js`;
       },
       
@@ -123,7 +120,7 @@ export const productionChunkingConfig = {
     
     // Tree-shaking configuration
     treeshake: {
-      moduleSideEffects: (id: string, external: boolean) => {
+      moduleSideEffects: (id: string) => {
         // Preserve side effects for certain modules
         if (id.includes('polyfill')) return true;
         if (id.includes('.css')) return true;

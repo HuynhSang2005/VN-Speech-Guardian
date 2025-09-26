@@ -73,6 +73,9 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "src/api/generated/vNSpeechGuardianAPI.ts"
+    "src/api/generated/vNSpeechGuardianAPI.ts",
+    "src/test/**/*",
+    "src/mocks/**/*",
+    "src/examples/**/*"
   ]
 }

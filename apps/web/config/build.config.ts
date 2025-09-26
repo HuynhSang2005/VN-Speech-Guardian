@@ -10,7 +10,7 @@
  * - Bundle size monitoring and alerts
  */
 
-import { defineConfig } from 'vite';
+// import { defineConfig } from 'vite';
 import type { BuildOptions } from 'vite';
 
 // Bundle size thresholds (KB)
@@ -73,7 +73,7 @@ export const productionBuildConfig: BuildOptions = {
   // Rollup optimization options
   rollupOptions: {
     treeshake: {
-      moduleSideEffects: (id, external) => {
+      moduleSideEffects: (id) => {
         // Preserve side effects for CSS and certain libraries
         if (id.includes('.css')) return true;
         if (id.includes('polyfill')) return true;
