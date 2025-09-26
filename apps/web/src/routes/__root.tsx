@@ -10,6 +10,7 @@ import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import { Suspense } from 'react'
+import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/tanstack-react-start'
 import { cn } from '../lib/utils'
 
 // Error fallback component cho react-error-boundary
@@ -92,9 +93,9 @@ function GlobalLoadingSpinner() {
 function RootLayout() {
   return (
         <ErrorBoundary FallbackComponent={ReactErrorFallback}>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-background flex flex-col">
             {/* Global Navigation Header */}
-            <header className="border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <header className="border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 flex-shrink-0">
               <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                 {/* Logo và Brand */}
                 <div className="flex items-center space-x-4">
@@ -146,14 +147,25 @@ function RootLayout() {
                   </Link>
                 </nav>
 
-                {/* User actions */}
+                {/* User Authentication */}
                 <div className="flex items-center space-x-4">
-                  <Link 
-                    to="/login"
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Đăng nhập
-                  </Link>
+                  <SignedOut>
+                    <Link 
+                      to="/login"
+                      className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 rounded-md hover:bg-gray-100"
+                    >
+                      Đăng nhập
+                    </Link>
+                  </SignedOut>
+                  <SignedIn>
+                    <UserButton 
+                      appearance={{
+                        elements: {
+                          avatarBox: "h-8 w-8"
+                        }
+                      }}
+                    />
+                  </SignedIn>
                 </div>
               </div>
             </header>
@@ -166,7 +178,7 @@ function RootLayout() {
             </main>
 
             {/* Footer */}
-            <footer className="border-t border-border bg-gray-50 py-6">
+            <footer className="border-t border-border bg-gray-50 py-6 flex-shrink-0">
               <div className="container mx-auto px-4 text-center text-sm text-gray-600">
                 <p>© 2025 VN Speech Guardian. Bảo vệ nội dung tiếng Việt với AI.</p>
               </div>
@@ -179,9 +191,24 @@ function RootLayout() {
   )
 }
 
+// Root component với ClerkProvider theo official pattern
+function RootComponent() {
+  const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+  if (!clerkPublishableKey) {
+    throw new Error('VITE_CLERK_PUBLISHABLE_KEY không được tìm thấy trong environment variables')
+  }
+
+  return (
+    <ClerkProvider publishableKey={clerkPublishableKey}>
+      <RootLayout />
+    </ClerkProvider>
+  )
+}
+
 // Export route definition với type safety
 export const Route = createRootRoute({
-  component: RootLayout,
+  component: RootComponent,
   // Global error handling cho toàn bộ app
   errorComponent: RouterErrorFallback,
   // Global loading state
