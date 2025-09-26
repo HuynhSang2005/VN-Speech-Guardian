@@ -24,12 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  Download,
   Calendar,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Users,
   AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,11 +64,9 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   error,
   showLegend = true,
   showGrid = true,
-  animate = true,
   className,
   onDataClick,
 }) => {
-  const chartRef = React.useRef<HTMLCanvasElement>(null);
 
   // Mock chart implementation - in real app would use Chart.js
   const renderChart = () => {
