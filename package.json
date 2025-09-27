@@ -6,5 +6,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "socket.io-client": "^4.8.1",
+    "ws": "^8.18.3"
+  }
 }
